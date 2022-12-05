@@ -4,3 +4,13 @@
 
 
 ## Directory Configuration
+```
+.
+│  .gitignore
+│  README.md
+│
+└─TNPandMS_lib
+    └─OptimizationProram
+            AccelGradient.py      
+            MSA.py
+```
