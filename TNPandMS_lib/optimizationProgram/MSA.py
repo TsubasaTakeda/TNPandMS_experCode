@@ -12,7 +12,6 @@ class MSA:
         iteration = 0
         num_call_obj = 0
         num_call_dir = 0
-        conv = conv_judge*2
         
         now_sol = x_init
         now_obj = obj_func(now_sol)
@@ -58,6 +57,9 @@ class MSA:
 
 
 
+
+
+# テスト用
 
 if __name__ == '__main__':
     
