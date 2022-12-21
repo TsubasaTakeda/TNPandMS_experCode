@@ -239,6 +239,8 @@ class FISTA_BACK:
             # 暫定解の更新
             prev_sol = now_sol
             now_sol = temp_sol - temp_nbl/now_lips
+            # print(now_lips)
+            # print(temp_nbl)
             temp_t = (1 + (1 + 4*t**2)**(1/2))/2
             temp_sol = now_sol + ((t - 1)/temp_t) * (now_sol - prev_sol)
             t = temp_t
@@ -285,11 +287,13 @@ class FISTA_BACK:
         iota = 0
         while 1:
 
-            temp_sol = now_sol - (1/(self.back_para**iota * now_lips))*now_nbl
+            temp_sol = now_sol - now_nbl/(self.back_para**iota * now_lips)
+            # print(now_sol)
+            # print(temp_sol)
 
             F = self.obj_func(temp_sol)
             num_call_obj += 1
-            Q = now_obj - (1/(2*self.back_para**iota*now_lips))*now_nbl_nolm
+            Q = now_obj - now_nbl_nolm/(2*self.back_para**iota*now_lips)
 
             if F <= Q:
                 break
@@ -346,6 +350,7 @@ if __name__ == '__main__':
     fista_back.set_lips_init(0.01)
     fista_back.set_back_para(1.1)
     fista_back.set_conv_judge(0.03)
+    fista_back.set_output_iter(1)
     fista_back.exect_FISTA_back()
 
     print('\n\n')
