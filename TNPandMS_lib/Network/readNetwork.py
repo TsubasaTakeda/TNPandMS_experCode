@@ -137,6 +137,89 @@ def read_total_flow(tripsfile):
 
     return total_flow
 
+def read_vn(vufile):
+
+    file_data = open(vufile)
+
+    vehicle_data = {}
+    user_data = {}
+
+    while 1:
+
+        line = file_data.readline()
+
+        if 'Vehicle' in line:
+
+            vehicle_num = int(line[7:-2])
+            # print(vehicle_num)
+            
+            line = file_data.readline().split('\t')
+            line[-1] = line[-1][:-1]
+            column = line
+            data = []            
+            while 1:
+                line = file_data.readline()
+                if ';' in line:
+                    break
+                line = line.split('\t')
+                line[0] = int(line[0])
+                line[1] = line[1][1:-1].split(', ')
+                line[1] = list(map((lambda x: int(x)), line[1]))
+                line[2] = float(line[2])
+                line[3] = line[3][1:-1].split(', ')
+                if line[3][0] == '':
+                    line[3] = []
+                else:
+                    line[3] = list(map((lambda x: int(x)), line[3]))
+                line[4] = line[4][:-1]
+                line[4] = line[4][1:-1].split(', ')
+                if line[4][0] == '':
+                    line[4] = []
+                else:
+                    line[4] = list(map((lambda x: int(x)), line[4]))
+                data.append(line)
+            
+            # print(data)
+            vehicle_data[vehicle_num] = pd.DataFrame(data, columns=column)
+
+        elif 'User' in line:
+
+            user_num = int(line[4:-2])
+
+            line = file_data.readline().split('\t')
+            line[-1] = line[-1][:-1]
+            column = line
+            data = []
+            while 1:
+                line = file_data.readline()
+                if ';' in line:
+                    break
+                line = line.split('\t')
+                line[0] = int(line[0])
+                line[1] = int(line[1])
+                line[2] = int(line[2])
+                line[3] = float(line[2])
+                line[4] = line[4][1:-1].split(', ')
+                if line[4][0] == '':
+                    line[4] = []
+                else:
+                    line[4] = list(map((lambda x: int(x)), line[4]))
+                line[5] = line[5][1:-1].split(', ')
+                if line[5][0] == '':
+                    line[5] = []
+                else:
+                    line[5] = list(map((lambda x: int(x)), line[5]))
+                line[6] = line[6][:-1]
+                data.append(line)
+
+            # print(data)
+            user_data[user_num] = pd.DataFrame(data, columns=column)
+
+
+        if ';;' in line:
+            break
+
+    return vehicle_data, user_data
 
 # netfile の書き込み関数
 def write_net(netfile, links, num_zones, num_nodes, ftn, num_links):
@@ -223,49 +306,55 @@ if __name__ == "__main__":
 
     import os
 
-    name = 'SiouxFalls'
+    name = 'Sample'
 
     root = os.path.dirname(os.path.abspath('.'))
     root = os.path.join(root, '..', '_sampleData', name)
+
+    root1 = os.path.join(root, 'str_vu.tntp'.replace('str', name))
+    [vehicle, user] = read_vn(root1)
+    print(vehicle[1])
+    print(user[1])
+    print(user[2])
     
-    root1 = os.path.join(root, 'str1_net.tntp'.replace('str1', name))
-    # print(root1)
-    net = read_net(root1)
+    # root1 = os.path.join(root, 'str1_net.tntp'.replace('str1', name))
+    # # print(root1)
+    # net = read_net(root1)
+    # # print(net)
+    # # print('\n\n')
+
+    # num_zones = read_num_zones(root1)
+    # num_nodes = read_num_nodes(root1)
+    # ftn = read_ftn(root1)
+    # num_links = read_num_links(root1)
+
+    # root2 = os.path.join(root, 'str1_node.tntp'.replace('str1', name))
+    # node = read_node(root2)
+    # total_flow = read_total_flow(root2)
+    # # print(node)
+    # # print('\n\n')
+
+    # root3 = os.path.join(root, 'str1_trips.tntp'.replace('str1', name))
+    # # root3 = os.path.join(root, '..', 'SiouxFalls', 'SiouxFalls_trips.tntp')
+    # trips = read_trips(root3)
+    # print(trips)
+
+    # root = os.path.dirname(os.path.abspath('.'))
+    # root = os.path.join(root, '..', '_sampleData', name, 'TSnet')
+    # os.makedirs(root, exist_ok=True)
+    # root = os.path.join(root, 'str1TS_net.tntp'.replace('str1', name))
+
+    # write_net(root, net, num_zones, num_nodes, ftn, num_links)
+    # print('\n\n')
+    # net = read_net(root)
     # print(net)
-    # print('\n\n')
 
-    num_zones = read_num_zones(root1)
-    num_nodes = read_num_nodes(root1)
-    ftn = read_ftn(root1)
-    num_links = read_num_links(root1)
-
-    root2 = os.path.join(root, 'str1_node.tntp'.replace('str1', name))
-    node = read_node(root2)
-    total_flow = read_total_flow(root2)
+    # root = os.path.join(root, '..', 'str1TS_node.tntp'.replace('str1', name))
+    # write_node(root, node)
+    # node = read_node(root)
     # print(node)
-    # print('\n\n')
 
-    root3 = os.path.join(root, 'str1_trips.tntp'.replace('str1', name))
-    # root3 = os.path.join(root, '..', 'SiouxFalls', 'SiouxFalls_trips.tntp')
-    trips = read_trips(root3)
-    print(trips)
-
-    root = os.path.dirname(os.path.abspath('.'))
-    root = os.path.join(root, '..', '_sampleData', name, 'TSnet')
-    os.makedirs(root, exist_ok=True)
-    root = os.path.join(root, 'str1TS_net.tntp'.replace('str1', name))
-
-    write_net(root, net, num_zones, num_nodes, ftn, num_links)
-    print('\n\n')
-    net = read_net(root)
-    print(net)
-
-    root = os.path.join(root, '..', 'str1TS_node.tntp'.replace('str1', name))
-    write_node(root, node)
-    node = read_node(root)
-    print(node)
-
-    root = os.path.join(root, '..', 'str1TS_trips.tntp'.replace('str1', name))
-    write_trips(root, trips, num_zones, total_flow)
-    trips = read_trips(root)
-    print(trips)
+    # root = os.path.join(root, '..', 'str1TS_trips.tntp'.replace('str1', name))
+    # write_trips(root, trips, num_zones, total_flow)
+    # trips = read_trips(root)
+    # print(trips)
