@@ -272,6 +272,8 @@ class FISTA_BACK:
         self.num_call_obj = num_call_obj
         self.sol_obj = self.obj_func(self.sol)
 
+        print('finish accel gradient method')
+
         return 0
 
 
