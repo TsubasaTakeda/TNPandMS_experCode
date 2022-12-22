@@ -24,7 +24,7 @@ state_index	vehicle_type	state_index	add_cost	in_state	out_state	link_on
 
 User 2:
 state_index	vehicle_type	state_index	add_cost	in_state	out_state	link_on
-0	0	0	10.0	[1, 2, 3, 4]	[]	off
+0	0	0	10.0	[1, 2, 3, 4]	[]	on
 1	1	3	0	[]	[0]	on
 2	1	4	0	[]	[0]	on
 3	1	5	0	[]	[0]	on
