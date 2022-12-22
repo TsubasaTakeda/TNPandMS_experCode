@@ -132,10 +132,25 @@ def read_total_flow(tripsfile):
     for i in range(3):
         line = file_data.readline()
         if "<TOTAL OD FLOW>" in line:
-            total_flow = int(line.split('\t')[0][17:])
+            total_flow = float(line.split('\t')[0][17:])
             # print(num_nodes)
 
     return total_flow
+
+# function to read <NUMBER OF TIMES>
+def read_num_times(vufile):
+
+    file_data = open(vufile)
+
+    num_time = 0
+
+    for i in range(3):
+        line = file_data.readline()
+        if "<NUMBER OF TIMES>" in line:
+            num_time = int(line.split('\t')[0][17:])
+            # print(num_nodes)
+
+    return num_time
 
 def read_vn(vufile):
 
@@ -220,6 +235,7 @@ def read_vn(vufile):
             break
 
     return vehicle_data, user_data
+
 
 # netfile の書き込み関数
 def write_net(netfile, links, num_zones, num_nodes, ftn, num_links):
