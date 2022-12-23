@@ -152,7 +152,40 @@ def read_num_times(vufile):
 
     return num_time
 
-def read_vn(vufile):
+
+# function to read <CAPACITY SCALE>
+def read_capa_scale(vufile):
+
+    file_data = open(vufile)
+
+    capa_scale = 0
+
+    for i in range(5):
+        line = file_data.readline()
+        if "<CAPACITY SCALE>" in line:
+            capa_scale = float(line.split('\t')[0][16:])
+
+    return capa_scale
+
+def read_vu(vufile):
+
+    def str_list2int_list(str_list):
+
+        str_list = str_list[1:-1].split(', ')
+        if str_list[0] == '':
+            int_list = []
+        else:
+            int_list = list(map((lambda x: int(x)), str_list))
+        return int_list
+
+    def str_list2float_list(str_list):
+
+        str_list = str_list[1:-1].split(', ')
+        if str_list[0] == '':
+            float_list = []
+        else:
+            float_list = list(map((lambda x: float(x)), str_list))
+        return float_list
 
     file_data = open(vufile)
 
@@ -171,6 +204,7 @@ def read_vn(vufile):
             line = file_data.readline().split('\t')
             line[-1] = line[-1][:-1]
             column = line
+            # print(column)
             data = []            
             while 1:
                 line = file_data.readline()
@@ -178,24 +212,20 @@ def read_vn(vufile):
                     break
                 line = line.split('\t')
                 line[0] = int(line[0])
-                line[1] = line[1][1:-1].split(', ')
-                line[1] = list(map((lambda x: int(x)), line[1]))
-                line[2] = float(line[2])
-                line[3] = line[3][1:-1].split(', ')
-                if line[3][0] == '':
-                    line[3] = []
-                else:
-                    line[3] = list(map((lambda x: int(x)), line[3]))
-                line[4] = line[4][:-1]
-                line[4] = line[4][1:-1].split(', ')
-                if line[4][0] == '':
-                    line[4] = []
-                else:
-                    line[4] = list(map((lambda x: int(x)), line[4]))
+                line[1] = str_list2int_list(line[1])
+                line[2] = str_list2float_list(line[2])
+                line[3] = str_list2int_list(line[3])
+                # print(line)
+                line[4] = str_list2int_list(line[4])
+                line[5] = str_list2int_list(line[5])
+                line[6] = line[6][:-1]
+                line[6] = str_list2float_list(line[6])
+                # print(line)
                 data.append(line)
             
             # print(data)
             vehicle_data[vehicle_num] = pd.DataFrame(data, columns=column)
+            vehicle_data[vehicle_num].set_index('state_index', inplace=True)
 
         elif 'User' in line:
 
@@ -211,24 +241,19 @@ def read_vn(vufile):
                     break
                 line = line.split('\t')
                 line[0] = int(line[0])
-                line[1] = int(line[1])
-                line[2] = int(line[2])
-                line[3] = float(line[2])
-                line[4] = line[4][1:-1].split(', ')
-                if line[4][0] == '':
-                    line[4] = []
-                else:
-                    line[4] = list(map((lambda x: int(x)), line[4]))
-                line[5] = line[5][1:-1].split(', ')
-                if line[5][0] == '':
-                    line[5] = []
-                else:
-                    line[5] = list(map((lambda x: int(x)), line[5]))
-                line[6] = line[6][:-1]
+                line[1] = str_list2int_list(line[1])
+                line[2] = str_list2int_list(line[2])
+                line[3] = str_list2float_list(line[3])
+                line[4] = str_list2int_list(line[4])
+                line[5] = str_list2int_list(line[5])
+                line[6] = str_list2int_list(line[6])
+                line[7] = str_list2float_list(line[7])
+                line[8] = line[8][:-1]
                 data.append(line)
 
             # print(data)
             user_data[user_num] = pd.DataFrame(data, columns=column)
+            user_data[user_num].set_index('state_index', inplace=True)
 
 
         if ';;' in line:
@@ -327,11 +352,11 @@ if __name__ == "__main__":
     root = os.path.dirname(os.path.abspath('.'))
     root = os.path.join(root, '..', '_sampleData', name)
 
-    root1 = os.path.join(root, 'str_vu.tntp'.replace('str', name))
-    [vehicle, user] = read_vn(root1)
-    print(vehicle[1])
-    print(user[1])
-    print(user[2])
+    # root1 = os.path.join(root, 'str_vu.tntp'.replace('str', name))
+    root1 = os.path.join(root, 'Sample1_vu.tntp')
+    [vehicle, user] = read_vu(root1)
+    print(vehicle[0])
+    print(user[0])
     
     # root1 = os.path.join(root, 'str1_net.tntp'.replace('str1', name))
     # # print(root1)

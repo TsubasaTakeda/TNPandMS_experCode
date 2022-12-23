@@ -1,19 +1,21 @@
 <NUMBER OF VEHICLE TYPE> 1
 <NUMBER OF USER TYPE> 1
 <NUMBER OF TIMES> 4
+<CAPACITY SCALE> 0.75
 
 
-Vehicle 1:
-state_index	state	add_cost	in_state	out_state
-0	[0]	0.0	[1]	[]
-1	[1]	1.0	[2]	[0]
-2	[2]	2.0	[]	[1]
+Vehicle 0:
+state_index	state	add_cost	price_index	to_state	to_price_index	to_cost
+0	[0]	[0.0]	[0]	[1]	[0]	[1.0]
+1	[1]	[1.0]	[1]	[2, 0]	[1, 0]	[1.0, 1.0]
+2	[2]	[2.0]	[2]	[1]	[1]	[1.0]
 ;
 
 
-User 1:
-state_index	vehicle_type	state_index	add_cost	in_state	out_state	link_on
-0	0	0	4.0	[1]	[]	on
-1	1	1	0	[]	[0]	on
+User 0:
+state_index	vehicle_type	vehicle_state	add_cost	price_index	to_state	to_price_index	to_cost	link_on
+0	[]	[]	[4.0]	[0]	[1, 2]	[1, 2]	[1.0, 1.0]	off
+1	[0]	[1]	[0.0]	[1]	[0, 2]	[1, 0]	[1.0, 0.0]	on
+2	[0]	[2]	[0.5]	[2]	[0, 1]	[2, 0]	[1.0, 0.0]	on
 ;
 ;;
