@@ -3,11 +3,6 @@ import pandas as pd
 
 
 
-def make_vehicle_net(original_links, original_nodes, num_zones, num_times, vehicle_info):
-
-    # print(original_links)
-    print('a')
-
 
 def make_ts_net_nodes(original_nodes, num_times):
     for time in range(num_times):
@@ -143,6 +138,14 @@ def make_TS_net_off(original_nodes, num_times, capacity_scale):
     return TS_links, TS_nodes
 
 
+def make_vehicle_net(original_links, original_nodes, num_zones, num_times, capa_scale, vehicle_info):
+
+    [ts_net_links, ts_net_nodes] = make_TS_net(original_links, original_nodes, num_times, capa_scale)
+    print(ts_net_links)
+    print(ts_net_nodes)
+
+    print(vehicle_info)
+
 
 if __name__ == "__main__":
 
@@ -173,12 +176,12 @@ if __name__ == "__main__":
     # print(type(num_time))
     # print('\n\n')
 
-    [ts_links, ts_nodes] = make_TS_net(links, nodes, num_time, capa_scale)
-    print(ts_links)
-    print(ts_nodes)
-    [ts_links, ts_nodes] = make_TS_net_off(nodes, num_time, capa_scale)
-    print(ts_links)
-    print(ts_nodes)
+    # [ts_links, ts_nodes] = make_TS_net(links, nodes, num_time, capa_scale)
+    # print(ts_links)
+    # print(ts_nodes)
+    # [ts_links, ts_nodes] = make_TS_net_off(nodes, num_time, capa_scale)
+    # print(ts_links)
+    # print(ts_nodes)
 
     for vehicle in vehicle_info.keys():
-        make_vehicle_net(links, nodes, num_zones, num_time, vehicle_info[vehicle])
+        make_vehicle_net(links, nodes, num_zones, num_time, capa_scale, vehicle_info[vehicle])

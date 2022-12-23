@@ -187,6 +187,11 @@ def read_vu(vufile):
             float_list = list(map((lambda x: float(x)), str_list))
         return float_list
 
+    def str_list2str_list(str_list):
+        
+        str_list = str_list[1:-1].split(', ')
+        return str_list
+
     file_data = open(vufile)
 
     vehicle_data = {}
@@ -217,9 +222,10 @@ def read_vu(vufile):
                 line[3] = str_list2int_list(line[3])
                 # print(line)
                 line[4] = str_list2int_list(line[4])
-                line[5] = str_list2int_list(line[5])
-                line[6] = line[6][:-1]
-                line[6] = str_list2float_list(line[6])
+                line[5] = str_list2str_list(line[5])
+                line[6] = str_list2int_list(line[6])
+                line[7] = line[7][:-1]
+                line[7] = str_list2float_list(line[7])
                 # print(line)
                 data.append(line)
             
@@ -246,9 +252,10 @@ def read_vu(vufile):
                 line[3] = str_list2float_list(line[3])
                 line[4] = str_list2int_list(line[4])
                 line[5] = str_list2int_list(line[5])
-                line[6] = str_list2int_list(line[6])
-                line[7] = str_list2float_list(line[7])
-                line[8] = line[8][:-1]
+                line[6] = str_list2str_list(line[6])
+                line[7] = str_list2int_list(line[7])
+                line[8] = str_list2float_list(line[8])
+                line[9] = line[9][:-1]
                 data.append(line)
 
             # print(data)
