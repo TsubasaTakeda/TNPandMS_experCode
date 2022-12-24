@@ -269,6 +269,54 @@ def read_vu(vufile):
     return vehicle_data, user_data
 
 
+def read_scost(scostfile):
+
+    def str_list2float_list(str_list):
+
+        str_list = str_list[1:-1].split(', ')
+        if str_list[0] == '':
+            float_list = []
+        else:
+            float_list = list(map((lambda x: float(x)), str_list))
+        return float_list
+
+    file_data = open(scostfile)
+
+    vehicle_scost = {}
+    user_scost = {}
+
+    while 1:
+
+        line = file_data.readline()
+
+        if 'Vehicle' in line:
+
+            vehicle_num = int(line[7:-2])
+            # print(vehicle_num)
+
+            line = file_data.readline()
+            line = line[:-1]
+
+            # print(data)
+            vehicle_scost[vehicle_num] = str_list2float_list(line)
+
+        elif 'User' in line:
+
+            vehicle_num = int(line[4:-2])
+            # print(vehicle_num)
+
+            line = file_data.readline()
+            line = line[:-1]
+
+            # print(data)
+            user_scost[vehicle_num] = str_list2float_list(line)
+
+        if ';;' in line:
+            break
+
+    return vehicle_scost, user_scost
+
+
 # netfile の書き込み関数
 def write_net(netfile, links, num_zones, num_nodes, ftn, num_links):
 
