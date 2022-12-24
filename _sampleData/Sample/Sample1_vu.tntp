@@ -6,7 +6,7 @@
 
 Vehicle 0:
 state_index	state	add_cost	price_index	to_state	in_or_out	to_price_index	to_cost
-0	[0]	[0.0]	[0]	[1]	[in]	[0]	[1.0]
+0	[0]	[0.0]	[0]	[1]	[in]	[1]	[1.0]
 1	[1]	[1.0]	[1]	[2, 0]	[in, out]	[2, 1]	[1.0, 1.0]
 2	[2]	[2.0]	[2]	[1]	[out]	[2]	[1.0]
 ;
@@ -15,7 +15,7 @@ state_index	state	add_cost	price_index	to_state	in_or_out	to_price_index	to_cost
 User 0:
 state_index	vehicle_type	vehicle_state	add_cost	price_index	to_state	in_or_out	to_price_index	to_cost	link_on
 0	[]	[]	[4.0]	[0]	[1, 2]	[in, in]	[1, 2]	[1.0, 1.0]	off
-1	[0]	[1]	[0.0]	[1]	[0, 2]	[non, out]	[1, 0]	[1.0, 0.0]	on
-2	[0]	[2]	[0.5]	[2]	[0, 1]	[non, out]	[2, 0]	[1.0, 0.0]	on
+1	[0]	[1]	[0.0]	[1]	[0, 2]	[out, non]	[1, 0]	[1.0, 0.0]	on
+2	[0]	[2]	[0.5]	[2]	[0, 1]	[out, non]	[2, 0]	[1.0, 0.0]	on
 ;
 ;;
