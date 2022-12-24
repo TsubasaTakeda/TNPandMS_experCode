@@ -346,10 +346,69 @@ def make_vehicle_net(original_links, original_nodes, num_zones, num_times, capa_
 
         VTS_links = VTS_links.append(add_df)
 
+    # -------------------------------------------各stateから別のstateに向けたリンクを作成-------------------------------------------------------
+    for from_state in vehicle_info.index:
+        for i in range(len(vehicle_info['to_state'][from_state])):
 
-    print(VTS_links.loc[35:])
+            now_num_links = len(VTS_links)
 
-    print(vehicle_info)
+            index_list = [now_num_links + i for i in range(len(ts_net_nodes) - len(ts_net_nodes[ts_net_nodes['time'] == num_times-1]))]
+            # print(index_list)
+
+            init_node = list(VTS_nodes[(VTS_nodes['vehicle_state'] == from_state) & ( VTS_nodes['time'] != num_times-1 )].index)
+            # print(init_node)
+
+            to_state = vehicle_info['to_state'][from_state][i]
+            term_node = list(VTS_nodes[(VTS_nodes['vehicle_state'] == to_state) & (VTS_nodes['time'] != 0)].index)
+            # print(term_node)
+
+            fft = [vehicle_info['to_cost'][from_state][i] for j in range(len(index_list))]
+            # print(fft)
+
+            o_link = [-1 for j in range(len(index_list))]
+            time = list(VTS_nodes[(VTS_nodes['vehicle_state'] == from_state) & (VTS_nodes['time'] != num_times-1)]['time'])
+            # print(time)
+
+            o_ts_link = [-1 for j in range(len(index_list))]
+            v_state = [-1 for j in range(len(index_list))]
+
+
+            if vehicle_info['in_or_out'][from_state][i] == 'in':
+                link_type = 2
+            elif vehicle_info['in_or_out'][from_state][i] == 'out':
+                link_type = 3
+            else:
+                link_type = 0
+            link_type = [link_type for j in range(len(index_list))]
+
+            price_index = vehicle_info['to_price_index'][from_state][i]
+            price_index = [price_index for j in range(len(index_list))]
+
+            add_df = pd.DataFrame(
+                {
+                    'init_node': init_node,
+                    'term_node': term_node,
+                    # 'capacity': capacity,
+                    'free_flow_time': fft,
+                    'original_link': o_link,
+                    'time': time,
+                    'original_TS_link': o_ts_link,
+                    'vehicle_state': v_state,
+                    'link_type': link_type,
+                    'price_index': price_index
+                }, index=index_list
+            )
+            # print(add_df)
+            VTS_links = VTS_links.append(add_df)
+
+    # print(VTS_links)
+
+
+
+    # print(VTS_links.loc[35:])
+
+    # print(vehicle_info)
+    return VTS_links, VTS_nodes
 
 
 
@@ -406,4 +465,6 @@ if __name__ == "__main__":
     # print(ts_nodes)
 
     for vehicle in vehicle_info.keys():
-        make_vehicle_net(links, nodes, num_zones, num_time, capa_scale, vehicle_info[vehicle], vehicle_scost[vehicle])
+        [VTS_links, VTS_nodes] = make_vehicle_net(links, nodes, num_zones, num_time, capa_scale, vehicle_info[vehicle], vehicle_scost[vehicle])
+        print(VTS_links)
+        print(VTS_nodes)
