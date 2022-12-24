@@ -1,26 +1,26 @@
 
 
-# forward関数を作成する関数(整列済みの nodes, links を input)
-def make_forward(nodes, links, keyword):
+# # forward関数を作成する関数(整列済みの nodes, links を input)
+# def make_forward(nodes, links, keyword):
 
-    # ノード別リンク開始インデックスを格納するリスト
-    # forward: {node: link_index}
-    forward = dict(zip(nodes.index, [0 for i in range(len(nodes))]))
-    k = 0
-    now_node = nodes.index[k]
-    for i in links.index:
-        while links[keyword][i] > now_node:
-            k += 1
-            now_node = nodes.index[k]
-            forward[now_node] = i
-    # 終点ノードでは，仮想的なリンク番号(リンク数)を付与
-    k += 1
-    while k < len(nodes):
-        now_node = nodes.index[k]
-        forward[now_node] = len(links)
-        k += 1
+#     # ノード別リンク開始インデックスを格納するリスト
+#     # forward: {node: link_index}
+#     forward = dict(zip(nodes.index, [0 for i in range(len(nodes))]))
+#     k = 0
+#     now_node = nodes.index[k]
+#     for i in links.index:
+#         while links[keyword][i] > now_node:
+#             k += 1
+#             now_node = nodes.index[k]
+#             forward[now_node] = i
+#     # 終点ノードでは，仮想的なリンク番号(リンク数)を付与
+#     k += 1
+#     while k < len(nodes):
+#         now_node = nodes.index[k]
+#         forward[now_node] = len(links)
+#         k += 1
 
-    return forward
+#     return forward
 
 
 # upstream orderを計算するメソッド(上流向きノード順)
@@ -28,10 +28,6 @@ def make_node_upstream_order(nodes, links):
 
     # ノードをインデックス順にソート
     nodes.sort_index()
-    # リンクを始点ノード順にソート
-    links.sort_values('init_node')
-    # forward関数を取得
-    forward = make_forward(nodes, links, 'init_node')
 
     # 結果格納リスト
     upstream_order = []
@@ -46,11 +42,9 @@ def make_node_upstream_order(nodes, links):
     while len(non_search_index) > 0:
         remove_nodes = []
         for i in non_search_index:
-            if i == nodes.index[-1]:
-                link_set = links[forward[i]:len(links)]
-            else:
-                link_set = links[forward[i]:forward[i+1]]
-            # print(link_set)
+
+            link_set = links[links['init_node'] == i]
+            # print(links)
 
             ok = True
             for j in link_set.index:
@@ -65,6 +59,8 @@ def make_node_upstream_order(nodes, links):
         for i in remove_nodes:
             non_search_index.remove(i)
 
+    # print(upstream_order)
+
     return upstream_order
 
 
@@ -72,12 +68,7 @@ def make_node_upstream_order(nodes, links):
 def make_node_downstream_order(nodes, links, origin_node):
 
     # ノードをインデックス順にソート
-    nodes.sort_index()
-    # リンクを終点ノード順にソート
-    links.sort_values('term_node')
-    # forward関数を取得
-    forward = make_forward(nodes, links, 'term_node')
-    # print(forward)
+    nodes.sort_index(inplace=True)
 
     # 結果格納リスト
     downstream_order = [origin_node]
@@ -95,10 +86,7 @@ def make_node_downstream_order(nodes, links, origin_node):
         remove_nodes = []
         for i in non_search_index:
 
-            if i == nodes.index[-1]:
-                link_set = links[forward[i]:len(links)]
-            else:
-                link_set = links[forward[i]:forward[i+1]]
+            link_set = links[links['term_node'] == i]
 
             ok = True
             for j in link_set.index:
@@ -112,5 +100,8 @@ def make_node_downstream_order(nodes, links, origin_node):
 
         for i in remove_nodes:
             non_search_index.remove(i)
+
+
+    # print(downstream_order)
 
     return downstream_order

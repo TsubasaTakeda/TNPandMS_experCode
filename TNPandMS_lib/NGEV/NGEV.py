@@ -17,63 +17,86 @@ def NGEV(nodes, links, node_order, cost_name = 'free_flow_time'):
     # print('Start NGEV')
 
     max_dbl = sys.float_info.max
+    max_exp_dbl = math.log(sys.float_info.max)
     nodes['exp_cost'] = max_dbl
     nodes['exp_cost'][node_order[0][0]] = 0.0
     nodes['NGEV_flow'] = 0.0
     links['percent'] = 0.0
     links['NGEV_flow'] = 0.0
 
-    # リンクを終点ノード順にソート
-    term_order_links = links.sort_values('term_node')
-    # forward関数を取得
-    term_forward = GEVsub.make_forward(nodes, links, 'term_node')
-
-    # print(nodes)
-    # print(links)
 
     # 起点ノードから順に期待最小費用を計算
     for i in node_order[0][1:]:
 
         exp_sum = 0
-        if i == nodes.index[-1]:
-            link_set = links[term_forward[i]:len(links)]
-        else:
-            link_set = links[term_forward[i]:term_forward[i+1]]
+
+        link_set = links[links['term_node'] == i]
+
+        # print('term_node = ', i)
+        # print(link_set)
+
+
+        if len(link_set) == 0:
+            continue
 
         for index, link in link_set.iterrows():
+            # print(nodes['exp_cost'][link['init_node']] + link[cost_name])
+            # if -nodes['theta'][i] * (link[cost_name] + nodes['exp_cost'][link['init_node']]) > max_exp_dbl:
+            #     exp_sum = max_dbl
+            #     continue
             exp_sum += link['alpha'] * math.exp(-nodes['theta'][i] * (link[cost_name] + nodes['exp_cost'][link['init_node']]))
-            # print(-nodes['theta'][i] * (link[cost_name] + nodes['exp_cost'][link['init_node']]))
-            # print(exp_sum)
     
-        nodes.loc[i, 'exp_cost'] = - math.log(exp_sum)/nodes['theta'][i]
+        if exp_sum == 0:
+            nodes.loc[i, 'exp_cost'] = max_dbl
+        else:
+            nodes.loc[i, 'exp_cost'] = - math.log(exp_sum)/nodes['theta'][i]
 
+        # print(nodes)
+        # print('exp_sum = ', exp_sum)
+        # print('exp_cost = ', nodes.loc[i, 'exp_cost'])
 
-    # リンクを起点ノード順にソート
-    links.sort_values('init_node')
-    init_forward = GEVsub.make_forward(nodes, links, 'init_node')
+    # print(nodes)
+
         
     # 終点ノードから順にフローを計算
     for i in node_order[1]:
 
         # 下流側からのflow
         sum_flow = 0.0
-        if i == nodes.index[-1]:
-            link_set = links[init_forward[i]:len(links)]
-        else:
-            link_set = links[init_forward[i]:init_forward[i+1]]
+
+        link_set = links[links['init_node'] == i]
+
         for index, link in link_set.iterrows():
             sum_flow += link['NGEV_flow']
 
         # ノードフローを計算
         nodes.loc[i, 'NGEV_flow'] = sum_flow + nodes['demand'][i]
+        # print(nodes['demand'][i])
+        # print('node', i, ': sum_flow = ', nodes.loc[i, 'NGEV_flow'])
 
         # 上流リンク条件付選択確率を計算
-        if i == nodes.index[-1]:
-            link_set = term_order_links[term_forward[i]:len(links)]
+        link_set = links[links['term_node'] == i]
+        if math.exp(- nodes['theta'][i] * nodes['exp_cost'][i]) == 0.0:
+            min_cost = max_dbl
+            k = 0
+            for index, link in link_set.iterrows():
+                temp_cost = link[cost_name] + nodes['exp_cost'][link['init_node']]
+                # print(temp_cost, min_cost)
+                if temp_cost < min_cost:
+                    min_cost = temp_cost
+                    k = index
+            for index, link in link_set.iterrows():
+
+                if k == 0:
+                    links.loc[index, 'percent'] = 1.0/len(link_set)
+                elif index == k:
+                    links.loc[index, 'percent'] = 1.0
+                else:
+                    links.loc[index, 'percent'] = 0
         else:
-            link_set = term_order_links[term_forward[i]:term_forward[i+1]]
+            for index, link in link_set.iterrows():
+                links.loc[index, 'percent'] = link['alpha'] * math.exp( - nodes['theta'][i] * ( link[cost_name] + nodes['exp_cost'][link['init_node']] ) ) / math.exp(- nodes['theta'][i] * nodes['exp_cost'][i])
         for index, link in link_set.iterrows():
-            links.loc[index, 'percent'] = link['alpha'] * math.exp( - nodes['theta'][i] * ( link[cost_name] + nodes['exp_cost'][link['init_node']] ) ) / math.exp(- nodes['theta'][i] * nodes['exp_cost'][i])
             links.loc[index, 'NGEV_flow'] = nodes['NGEV_flow'][i] * links['percent'][index]
 
     links.sort_index()
@@ -195,18 +218,21 @@ if __name__ == '__main__':
     from scipy import sparse
 
     root = os.path.dirname(os.path.abspath('.'))
-    root = root + '\..\_sampleData\Sample'
+    root = os.path.join(root, '..', '_sampleData', 'Sample', 'virtual_net', 'user', '0')
+    # print(root)
 
     # ノード情報を追加
-    nodes = rn.read_node(root + '\Sample_node.tntp')
+    nodes = rn.read_node(root + '\Sample_vir_node.tntp')
     keys = nodes.columns
+    # print(keys)
     nodes.drop(keys, axis=1, inplace=True)
-    nodes['theta'] = 5.0
+    nodes['theta'] = 1.0
     nodes['demand'] = 0.0
-    nodes['demand'][4] = 10.0
+    nodes['demand'][8] = 10.0
 
     # リンク情報を追加
-    links = rn.read_net(root + '\Sample_net.tntp')
+    links = rn.read_net(root + '\Sample_vir_net.tntp')
+    # print(links)
     keys = links.columns
     for key in keys:
         if key == 'init_node' or key == 'term_node' or key == 'free_flow_time' or key == 'capacity':
@@ -215,6 +241,8 @@ if __name__ == '__main__':
             links.drop(key, axis=1, inplace=True)
     links['alpha'] = 1.0
 
+    # print(nodes)
+    # print(links.loc[100:])
 
     down_order = GEVsub.make_node_downstream_order(nodes, links, 1)
     # print(down_order)
@@ -226,9 +254,13 @@ if __name__ == '__main__':
     B = sparse.lil_matrix((len(links), len(links)))
     for i in range(len(links)):
         B[i, i] = 1.0
-    b = np.array(list(links['capacity']))
-    NGEV_CC_equal(B, b, nodes, links, [down_order, up_order])
+    b = np.ones(len(links))*5.0
+    # NGEV_CC_equal(B, b, nodes, links, [down_order, up_order])
+
+    NGEV(nodes, links, [down_order, up_order], cost_name='free_flow_time')
     
     print(nodes)
     print('\n')
-    print(links)
+    print(links[:50])
+    print(links[50:100])
+    print(links[100:])
