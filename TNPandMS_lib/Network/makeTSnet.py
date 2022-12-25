@@ -137,7 +137,7 @@ def make_TS_net_off(original_nodes, num_times):
     return TS_links, TS_nodes
 
 
-def make_vehicle_net(original_links, original_nodes, num_zones, num_times, vehicle_info, vehicle_scost):
+def make_vehicle_net(original_links, original_nodes, num_zones, num_times, vehicle_info, vehicle_scost, non_trip_cost):
 
 
     # -------------------------------------------起点ノードを作成-------------------------------------------------------
@@ -265,8 +265,43 @@ def make_vehicle_net(original_links, original_nodes, num_zones, num_times, vehic
     # print(VTS_links)
 
     # -------------------------------------------各状態を行き来するリンクを作成-------------------------------------------------------
+    # -------------------------------------------起点から終点に向けたリンクを作成-------------------------------------------------------
+
+    now_num_links = len(VTS_links)
+
+    index_list = [now_num_links + i for i in range(num_zones)]
+    # print(index_list)
+    init_node = list(original_nodes.index)[:num_zones]
+    term_node = list(original_nodes.index + num_zones)[:num_zones]
+
+    fft = [non_trip_cost for i in range(num_zones)]
+    # print(fft)
+    o_link = [-1 for i in range(num_zones)]
+    time = [-1 for i in range(num_zones)]
+    o_ts_link = [-1 for i in range(num_zones)]
+    v_state = [-1 for i in range(num_zones)]
+    link_type = [-1 for i in range(num_zones)]
+    price_index = [0 for i in range(num_zones)]
+
+    add_df = pd.DataFrame(
+        {
+            'init_node': init_node,
+            'term_node': term_node,
+            # 'capacity': capacity,
+            'free_flow_time': fft,
+            'original_link': o_link,
+            'time': time,
+            'original_TS_link': o_ts_link,
+            'vehicle_state': v_state,
+            'link_type': link_type,
+            'price_index': price_index
+        }, index=index_list
+    )
+
+    VTS_links = VTS_links.append(add_df)
+
     # -------------------------------------------起点からstate=0に向けたリンクを作成-------------------------------------------------------
-    
+
     for time_index in range(num_times):
 
         now_num_links = len(VTS_links)
@@ -406,7 +441,7 @@ def make_vehicle_net(original_links, original_nodes, num_zones, num_times, vehic
     return VTS_links, VTS_nodes
 
 
-def make_user_net(original_links, original_nodes, num_zones, num_times, user_info, user_scost):
+def make_user_net(original_links, original_nodes, num_zones, num_times, user_info, user_scost, non_trip_cost):
 
     # -------------------------------------------起点ノードを作成-------------------------------------------------------
     index_list = [i+1 for i in range(num_zones)]
@@ -603,6 +638,42 @@ def make_user_net(original_links, original_nodes, num_zones, num_times, user_inf
     # -------------------------------------------各状態を行き来するリンクを作成-------------------------------------------------------
     # -------------------------------------------起点からstate=0に向けたリンクを作成-------------------------------------------------------
 
+
+    now_num_links = len(UTS_links)
+
+    index_list = [now_num_links + i for i in range(num_zones)]
+    # print(index_list)
+    init_node = list(original_nodes.index)[:num_zones]
+    term_node = list(original_nodes.index + num_zones)[:num_zones]
+
+    fft = [non_trip_cost for i in range(num_zones)]
+    # print(fft)
+    o_link = [-1 for i in range(num_zones)]
+    time = [-1 for i in range(num_zones)]
+    o_ts_link = [-1 for i in range(num_zones)]
+    u_state = [-1 for i in range(num_zones)]
+    link_type = [-1 for i in range(num_zones)]
+    price_index = [0 for i in range(num_zones)]
+
+    add_df = pd.DataFrame(
+        {
+            'init_node': init_node,
+            'term_node': term_node,
+            # 'capacity': capacity,
+            'free_flow_time': fft,
+            'original_link': o_link,
+            'time': time,
+            'original_TS_link': o_ts_link,
+            'user_state': u_state,
+            'link_type': link_type,
+            'price_index': price_index
+        }, index=index_list
+    )
+
+    UTS_links = UTS_links.append(add_df)
+
+    # -------------------------------------------起点からstate=0に向けたリンクを作成-------------------------------------------------------
+
     for time_index in range(num_times):
 
         now_num_links = len(UTS_links)
@@ -736,7 +807,7 @@ def make_user_net(original_links, original_nodes, num_zones, num_times, user_inf
             # print(add_df)
             UTS_links = UTS_links.append(add_df)
 
-    print(UTS_links.loc[35:70])
+    # print(UTS_links.loc[35:70])
     # print(user_info)
 
     return UTS_links, UTS_nodes
@@ -804,7 +875,7 @@ if __name__ == "__main__":
     for vehicle in vehicle_info.keys():
         temp_root = os.path.join(root5_vehicle, str(vehicle))
         makedirs(temp_root, exist_ok=True)
-        [VTS_links, VTS_nodes] = make_vehicle_net(links, nodes, num_zones, num_time, vehicle_info[vehicle], vehicle_scost[vehicle])
+        [VTS_links, VTS_nodes] = make_vehicle_net(links, nodes, num_zones, num_time, vehicle_info[vehicle], vehicle_scost[vehicle], 20.0)
         # print(VTS_links)
         # print(VTS_links[VTS_links['price_index'] == 1])
         # print(VTS_links[VTS_links['time'] == 3])
@@ -814,7 +885,7 @@ if __name__ == "__main__":
     for user in user_info.keys():
         temp_root = os.path.join(root5_user, str(user))
         makedirs(temp_root, exist_ok=True)
-        [UTS_links, UTS_nodes] = make_user_net(links, nodes, num_zones, num_time, user_info[user], user_scost[user])
+        [UTS_links, UTS_nodes] = make_user_net(links, nodes, num_zones, num_time, user_info[user], user_scost[user], 20.0)
         # print(UTS_links[UTS_links['price_index'] == 1])
         # print(UTS_nodes)
         rn.write_net(os.path.join(temp_root, 'Sample_vir_net.tntp'), UTS_links, num_zones*2, len(UTS_nodes), 1, len(UTS_links))
