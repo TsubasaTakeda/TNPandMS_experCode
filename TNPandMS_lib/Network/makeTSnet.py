@@ -501,7 +501,7 @@ def make_user_net(original_links, original_nodes, num_zones, num_times, user_inf
 
 
     # -------------------------------------------各状態のノードを作成-------------------------------------------------------
-    [ts_net_links, ts_net_nodes] = make_TS_net(original_links, original_nodes, num_times, capa_scale)
+    [ts_net_links, ts_net_nodes] = make_TS_net(original_links, original_nodes, num_times, 1.0)
     # print(ts_net_links)
     # print(ts_net_nodes)
 
