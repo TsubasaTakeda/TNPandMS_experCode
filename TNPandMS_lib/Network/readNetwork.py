@@ -322,7 +322,7 @@ def write_net(netfile, links, num_zones, num_nodes, ftn, num_links):
 
     links.sort_index()
 
-    print('start write net')
+    # print('start write net')
 
 
     f = open(netfile, mode='w')
@@ -345,7 +345,7 @@ def write_net(netfile, links, num_zones, num_nodes, ftn, num_links):
 
 
 
-    print('end write net')
+    # print('end write net')
 
 
 # nodefile の書き込み関数
@@ -353,7 +353,7 @@ def write_node(netfile, nodes):
 
     nodes.sort_index()
 
-    print('start write nodes')
+    # print('start write nodes')
 
     f = open(netfile, mode='w')
     f.write('Node')
@@ -367,7 +367,7 @@ def write_node(netfile, nodes):
         f.write('\t;')
     f.close()
 
-    print('end write nodes\n')
+    # print('end write nodes\n')
 
 
 # tripsfile の書き込み関数
@@ -379,7 +379,7 @@ def write_trips(netfile, trips, num_zones, total_flow):
     for key in trips.keys():
         trips[key] = dict(sorted(trips[key].items()))
 
-    print('start write trips')
+    # print('start write trips')
 
     f = open(netfile, mode='w')
     f.write('<NUMBER OF ZONES> ' + str(num_zones))
@@ -395,7 +395,7 @@ def write_trips(netfile, trips, num_zones, total_flow):
                 f.write('\n')
     f.close()
 
-    print('end write trips\n')
+    # print('end write trips\n')
 
 
 if __name__ == "__main__":

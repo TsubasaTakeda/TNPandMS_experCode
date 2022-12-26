@@ -14,7 +14,7 @@ def make_TNP_constMat(vehicle_links, num_const):
 
     for link_index in range(num_const):
 
-        link_set = vehicle_links[vehicle_links['original_ts_link'] == link_index]
+        link_set = vehicle_links[vehicle_links['original_TS_link'] == link_index]
         for vir_link_index in link_set.index:
             const_mat[link_index, vir_link_index] = 1.0
 
@@ -46,7 +46,7 @@ def make_MSV_constMat(vehicle_links, vehicle_nodes, vehicle_info, num_price_inde
 
             link_set = vehicle_links[(vehicle_links['vehicle_state'] == vehicle_state) & (vehicle_links['link_type'] == 1)]
             for vir_link_index, link in link_set.iterrows():
-                const_mat[start_row_num + link['original_ts_link'], vir_link_index] = num_coeffi
+                const_mat[start_row_num + link['original_TS_link'], vir_link_index] = num_coeffi
 
 
     # ---------inリンクの係数行列------------------------------------------------------------------
@@ -88,7 +88,7 @@ def make_MSU_constMat(user_links, user_nodes, num_price_index, num_ts_links, num
 
         link_set = user_links[(user_links['price_index'] == price_index) & (user_links['link_type'] == 1)]
         for vir_link_index, link in link_set.iterrows():
-            const_mat[start_row_num + link['original_ts_link'], vir_link_index] = num_coeffi
+            const_mat[start_row_num + link['original_TS_link'], vir_link_index] = num_coeffi
 
         # ---------inリンクの係数行列------------------------------------------------------------------
         num_coeffi = 1.0
