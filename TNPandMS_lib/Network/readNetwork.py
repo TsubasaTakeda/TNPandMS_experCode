@@ -132,7 +132,7 @@ def read_total_flow(tripsfile):
     for i in range(3):
         line = file_data.readline()
         if "<TOTAL OD FLOW>" in line:
-            total_flow = float(line.split('\t')[0][17:])
+            total_flow = float(line.split('\t')[0][15:])
             # print(num_nodes)
 
     return total_flow
@@ -317,6 +317,32 @@ def read_scost(scostfile):
     return vehicle_scost, user_scost
 
 
+# function to read total_flow.tntp
+def read_tflow(tflowfile):
+
+    file_data = open(tflowfile)
+
+    vehicle_tflow_data = {}
+    user_tflow_data = {}
+
+    while 1:
+        line = file_data.readline()
+        if "Vehicle" in line:
+            vehicle_num = int(line[7:-2])
+            line = file_data.readline()
+            tflow = float(line[:-2])
+            vehicle_tflow_data[vehicle_num] = tflow
+        elif 'User' in line:
+            user_num = int(line[4:-2])
+            line = file_data.readline()
+            tflow = float(line[:-2])
+            user_tflow_data[user_num] = tflow
+        elif ';;' in line:
+            break
+
+    return vehicle_tflow_data, user_tflow_data
+
+
 # netfile の書き込み関数
 def write_net(netfile, links, num_zones, num_nodes, ftn, num_links):
 
@@ -371,7 +397,7 @@ def write_node(netfile, nodes):
 
 
 # tripsfile の書き込み関数
-def write_trips(netfile, trips, num_zones, total_flow):
+def write_trips(tripsfile, trips, num_zones, total_flow):
 
     # trips をソート
     # print(trips)
@@ -381,7 +407,7 @@ def write_trips(netfile, trips, num_zones, total_flow):
 
     # print('start write trips')
 
-    f = open(netfile, mode='w')
+    f = open(tripsfile, mode='w')
     f.write('<NUMBER OF ZONES> ' + str(num_zones))
     f.write('\n<TOTAL OD FLOW> ' + str(total_flow))
     f.write('\n<END OF METADATA>\n\n')
