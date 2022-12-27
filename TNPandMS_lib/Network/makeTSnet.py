@@ -267,38 +267,38 @@ def make_vehicle_net(original_links, original_nodes, num_zones, num_times, vehic
     # -------------------------------------------各状態を行き来するリンクを作成-------------------------------------------------------
     # -------------------------------------------起点から終点に向けたリンクを作成-------------------------------------------------------
 
-    now_num_links = len(VTS_links)
+    for init_zone in list(original_nodes.index)[:num_zones]:
 
-    index_list = [now_num_links + i for i in range(num_zones)]
-    # print(index_list)
-    init_node = list(original_nodes.index)[:num_zones]
-    term_node = list(original_nodes.index + num_zones)[:num_zones]
+        now_num_links = len(VTS_links)
+        index_list = [now_num_links + i for i in range(num_zones)]
+        init_node = [init_zone for i in range(num_zones)]
+        term_node = list(original_nodes.index + num_zones)[:num_zones]
 
-    fft = [non_trip_cost for i in range(num_zones)]
-    # print(fft)
-    o_link = [-1 for i in range(num_zones)]
-    time = [-1 for i in range(num_zones)]
-    o_ts_link = [-1 for i in range(num_zones)]
-    v_state = [-1 for i in range(num_zones)]
-    link_type = [-1 for i in range(num_zones)]
-    price_index = [0 for i in range(num_zones)]
+        fft = [non_trip_cost for i in range(num_zones)]
+        # print(fft)
+        o_link = [-1 for i in range(num_zones)]
+        time = [-1 for i in range(num_zones)]
+        o_ts_link = [-1 for i in range(num_zones)]
+        v_state = [-1 for i in range(num_zones)]
+        link_type = [-1 for i in range(num_zones)]
+        price_index = [0 for i in range(num_zones)]
 
-    add_df = pd.DataFrame(
-        {
-            'init_node': init_node,
-            'term_node': term_node,
-            # 'capacity': capacity,
-            'free_flow_time': fft,
-            'original_link': o_link,
-            'time': time,
-            'original_TS_link': o_ts_link,
-            'vehicle_state': v_state,
-            'link_type': link_type,
-            'price_index': price_index
-        }, index=index_list
-    )
+        add_df = pd.DataFrame(
+            {
+                'init_node': init_node,
+                'term_node': term_node,
+                # 'capacity': capacity,
+                'free_flow_time': fft,
+                'original_link': o_link,
+                'time': time,
+                'original_TS_link': o_ts_link,
+                'vehicle_state': v_state,
+                'link_type': link_type,
+                'price_index': price_index
+            }, index=index_list
+        )
 
-    VTS_links = VTS_links.append(add_df)
+        VTS_links = VTS_links.append(add_df)
 
     # -------------------------------------------起点からstate=0に向けたリンクを作成-------------------------------------------------------
 
@@ -638,39 +638,39 @@ def make_user_net(original_links, original_nodes, num_zones, num_times, user_inf
     # -------------------------------------------各状態を行き来するリンクを作成-------------------------------------------------------
     # -------------------------------------------起点からstate=0に向けたリンクを作成-------------------------------------------------------
 
+    for init_zone in list(original_nodes.index)[:num_zones]:
 
-    now_num_links = len(UTS_links)
+        now_num_links = len(UTS_links)
+        index_list = [now_num_links + i for i in range(num_zones)]
+        # print(index_list)
+        init_node = [init_zone for i in range(num_zones)]
+        term_node = list(original_nodes.index + num_zones)[:num_zones]
 
-    index_list = [now_num_links + i for i in range(num_zones)]
-    # print(index_list)
-    init_node = list(original_nodes.index)[:num_zones]
-    term_node = list(original_nodes.index + num_zones)[:num_zones]
+        fft = [non_trip_cost for i in range(num_zones)]
+        # print(fft)
+        o_link = [-1 for i in range(num_zones)]
+        time = [-1 for i in range(num_zones)]
+        o_ts_link = [-1 for i in range(num_zones)]
+        u_state = [-1 for i in range(num_zones)]
+        link_type = [-1 for i in range(num_zones)]
+        price_index = [0 for i in range(num_zones)]
 
-    fft = [non_trip_cost for i in range(num_zones)]
-    # print(fft)
-    o_link = [-1 for i in range(num_zones)]
-    time = [-1 for i in range(num_zones)]
-    o_ts_link = [-1 for i in range(num_zones)]
-    u_state = [-1 for i in range(num_zones)]
-    link_type = [-1 for i in range(num_zones)]
-    price_index = [0 for i in range(num_zones)]
+        add_df = pd.DataFrame(
+            {
+                'init_node': init_node,
+                'term_node': term_node,
+                # 'capacity': capacity,
+                'free_flow_time': fft,
+                'original_link': o_link,
+                'time': time,
+                'original_TS_link': o_ts_link,
+                'user_state': u_state,
+                'link_type': link_type,
+                'price_index': price_index
+            }, index=index_list
+        )
 
-    add_df = pd.DataFrame(
-        {
-            'init_node': init_node,
-            'term_node': term_node,
-            # 'capacity': capacity,
-            'free_flow_time': fft,
-            'original_link': o_link,
-            'time': time,
-            'original_TS_link': o_ts_link,
-            'user_state': u_state,
-            'link_type': link_type,
-            'price_index': price_index
-        }, index=index_list
-    )
-
-    UTS_links = UTS_links.append(add_df)
+        UTS_links = UTS_links.append(add_df)
 
     # -------------------------------------------起点からstate=0に向けたリンクを作成-------------------------------------------------------
 
