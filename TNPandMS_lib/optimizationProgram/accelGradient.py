@@ -2,6 +2,7 @@
 import numpy as np
 import time
 from sqlalchemy import null
+import pandas as pd
 
 
 class FISTA:
@@ -241,8 +242,11 @@ class FISTA_BACK:
             now_sol = temp_sol - temp_nbl/now_lips
             # print(now_lips)
             # print(temp_nbl)
-            temp_t = (1 + (1 + 4*t**2)**(1/2))/2
-            temp_sol = now_sol + ((t - 1)/temp_t) * (now_sol - prev_sol)
+            if self.nbl_func(prev_sol) @ (now_sol - prev_sol) > 0:
+                t = 1.0
+            num_call_nbl += 1
+            temp_t = (1.0 + (1.0 + 4.0*t**2.0)**(1.0/2.0))/2.0
+            temp_sol = now_sol + ((t - 1.0)/temp_t) * (now_sol - prev_sol)
             t = temp_t
 
             # 収束判定の準備
@@ -273,6 +277,207 @@ class FISTA_BACK:
         self.sol_obj = self.obj_func(self.sol)
 
         print('finish accel gradient method')
+
+        return 0
+
+
+class FISTA_PROJ_BACK:
+
+    # 初期設定
+    def __init__(self):
+        # 結果格納用
+        self.iter = null
+        self.sol = null
+        self.sol_obj = null
+        self.num_call_nbl = null
+        self.num_call_obj = null
+        self.num_call_conv = null
+        self.num_call_proj = null
+        self.lips = null
+        self.time = null
+        # 演算等に必要なデータ
+        self.obj_func = null
+        self.nbl_func = null
+        self.proj_func = null
+        self.conv_func = null
+        self.lips_init = null
+        self.x_init = null
+        self.conv_judge = null
+        self.back_para = null
+        self.output_iter = 1000
+        # 結果格納用のデータセット
+        self.output_data = null
+        self.output_root = null
+
+    # 目的関数と勾配関数を設定(関数の引数はベクトルのみ)
+    def set_obj_func(self, obj_func):
+        self.obj_func = obj_func
+
+    def set_nbl_func(self, nbl_func):
+        self.nbl_func = nbl_func
+
+    def set_proj_func(self, proj_func):
+        self.proj_func = proj_func
+
+    def set_conv_func(self, conv_func):
+        self.conv_func = conv_func
+
+    # 計算に必要な各種設定をsetting
+    def set_lips_init(self, lips_init):
+        self.lips_init = lips_init
+
+    def set_output_iter(self, iter):
+        self.output_iter = iter
+
+    def set_conv_judge(self, conv):
+        self.conv_judge = conv
+
+    def set_back_para(self, para):
+        if para <= 1.0:
+            print("backtracking parameter is rather than 1.")
+            return 0
+        self.back_para = para
+
+    def set_x_init(self, x_init):
+        self.x_init = x_init
+
+    def set_output_root(self, root):
+        self.output_root = root
+
+    # FISTA with backtracking
+    def exect_FISTA_proj_back(self):
+
+        is_Executed = 0
+
+        print("\n\n")
+
+        if self.x_init is null:
+            print("init sol is not set.")
+            is_Executed = -1
+        if self.obj_func is null:
+            print("objective function is not set.")
+            is_Executed = -1
+        if self.nbl_func is null:
+            print("nabla function is not set.")
+            is_Executed = -1
+        if self.proj_func is null:
+            print("projection function is not set.")
+            is_Executed = -1
+        if self.conv_func is null:
+            print("convergence function is not set.")
+            is_Executed = -1
+        if self.lips_init is null:
+            print("initial lipschitz constant (>0) is not set.")
+            is_Executed = -1
+        if self.back_para is null:
+            print("backtracking parameter is not set.")
+            is_Executed = -1
+        if self.conv_judge is null:
+            print("convergence judgement (>0) is not set.")
+            is_Executed = -1
+
+        if is_Executed:
+            print("FISTA with backtracking cannot be executed.\n\n")
+            return -1
+
+        print('start Accel Gradient Projection Method (FISTA with backtracking)!')
+
+        output_data = pd.DataFrame([[0, 0.0, null, null, self.lips_init, 0, 0, 0, 0, self.x_init]], columns=['Iteration', 'elapse_time', 'now_obj', 'now_conv', 'now_lips', 'num_call_obj', 'num_call_nbl', 'num_call_proj', 'num_call_conv', 'now_sol'])
+        # print(output_data)
+        if self.output_root != null:
+            output_data.to_csv(self.output_root)
+
+        start_time = time.process_time()
+        elapse_time = 0.0
+
+        # 初期設定（反復回数・勾配関数の呼び出し回数を初期化）
+        iteration = 0
+        num_call_obj = 0
+        num_call_nbl = 0
+        num_call_conv = 0
+        num_call_proj = 0
+        now_lips = self.lips_init
+
+        # 解の更新で使用する値
+        t = 1
+
+        # 初期解の設定
+        now_sol = self.x_init
+
+        temp_sol = now_sol
+
+        if len(now_sol) > 5:
+            print('iteration:', iteration, ' now_sol:', now_sol[:5])
+        else:
+            print('iteration:', iteration, ' now_sol:', now_sol)
+
+        while 1:
+
+            iteration += 1
+
+            # 勾配計算（一時的な解の）
+            temp_nbl = self.nbl_func(temp_sol)
+            num_call_nbl += 1
+
+            # backtracking
+            [now_lips, temp_call_obj, temp_call_nbl] = self.backtracking(temp_sol, now_lips)
+            num_call_obj += temp_call_obj
+            num_call_nbl += temp_call_nbl
+
+            # 暫定解の更新
+            prev_sol = now_sol
+            now_sol = self.proj_func(temp_sol - temp_nbl/now_lips)
+            num_call_proj += 1
+            if self.nbl_func(prev_sol) @ (now_sol - prev_sol) > 0:
+                t = 1.0
+            num_call_nbl += 1
+            temp_t = (1.0 + (1.0 + 4.0*t**2.0)**(1.0/2.0))/2.0
+            temp_sol = now_sol + ((t - 1.0)/temp_t) * (now_sol - prev_sol)
+            temp_sol = self.proj_func(temp_sol)
+            t = temp_t
+
+            # 収束判定の準備
+            conv = self.conv_func(now_sol)
+            num_call_conv += 1
+
+            if iteration % self.output_iter == 0:
+
+                if len(now_sol) > 5:
+                    print('iteration:', iteration, ' now_sol:', now_sol[:5], ' convergence:', conv)
+                else:
+                    print('iteration:', iteration, ' now_sol:', now_sol, ' convergence:', conv)
+
+                end_time = time.process_time()
+                elapse_time += end_time - start_time
+                now_obj = self.obj_func(now_sol)
+                num_call_obj += 1
+                add_df = pd.DataFrame([[iteration, end_time - start_time, now_obj, conv, now_lips, num_call_obj, num_call_nbl, num_call_proj, num_call_conv, now_sol]], columns=output_data.columns, index=[iteration])
+                # print(add_df)
+                output_data = output_data.append(add_df)
+                if self.output_root != null:
+                    output_data.to_csv(self.output_root)
+                start_time = end_time
+
+            # 収束判定
+            if conv < self.conv_judge:
+                break
+
+        end_time = time.process_time()
+        elapse_time += end_time - start_time
+
+        self.sol = now_sol
+        self.iter = iteration
+        self.time = elapse_time
+        self.num_call_nbl = num_call_nbl
+        self.num_call_obj = num_call_obj
+        self.num_call_proj = num_call_proj
+        self.num_call_conv = num_call_conv
+        self.sol_obj = self.obj_func(self.sol)
+        self.output_data = output_data
+        if self.output_root != null:
+            output_data.to_csv(self.output_root)
+
+        print('finish accel gradient projection method')
 
         return 0
 

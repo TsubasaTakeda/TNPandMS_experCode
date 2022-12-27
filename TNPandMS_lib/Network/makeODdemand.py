@@ -32,7 +32,7 @@ def make_trips_random(num_zones, total_flow):
     for origin_node in range(1, num_zones+1):
         trips[origin_node] = {}
         for destination_node in range(num_zones+1, num_zones*2+1):
-            trips[origin_node][destination_node] = total_flow * rand[origin_node][destination_node]
+            trips[origin_node][destination_node] = total_flow * rand[origin_node][destination_node]/sum_rand
 
     return trips
 
