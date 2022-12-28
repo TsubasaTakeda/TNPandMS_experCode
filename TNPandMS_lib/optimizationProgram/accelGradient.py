@@ -382,13 +382,14 @@ class FISTA_PROJ_BACK:
 
         print('start Accel Gradient Projection Method (FISTA with backtracking)!')
 
-        output_data = pd.DataFrame([[0, 0.0, null, null, self.lips_init, 0, 0, 0, 0, self.x_init]], columns=['Iteration', 'elapse_time', 'now_obj', 'now_conv', 'now_lips', 'num_call_obj', 'num_call_nbl', 'num_call_proj', 'num_call_conv', 'now_sol'])
-        # print(output_data)
+        # 初期状態の諸々を計算
+        [now_obj, temp_para_time, temp_total_time] = self.obj_func(self.x_init)
+        [now_conv, temp_para_time, temp_total_time] = self.conv_func(self.x_init)
+
+        output_data = pd.DataFrame([[0, 0.0, 0.0, now_obj, now_conv, self.lips_init, 0, 0, 0, 0, self.x_init]], columns=['Iteration', 'pararel_time', 'total_time', 'now_obj', 'now_conv', 'now_lips', 'num_call_obj', 'num_call_nbl', 'num_call_proj', 'num_call_conv', 'now_sol'])
         if self.output_root != null:
             output_data.to_csv(self.output_root)
 
-        start_time = time.process_time()
-        elapse_time = 0.0
 
         # 初期設定（反復回数・勾配関数の呼び出し回数を初期化）
         iteration = 0
@@ -406,38 +407,60 @@ class FISTA_PROJ_BACK:
 
         temp_sol = now_sol
 
+        # 計算時間格納用変数
+        para_time = 0.0
+        total_time = 0.0
+
         if len(now_sol) > 5:
-            print('iteration:', iteration, ' now_sol:', now_sol[:5])
+            print('iteration:', iteration, ' now_sol:', now_sol[:5], ' convergence:', now_conv)
         else:
-            print('iteration:', iteration, ' now_sol:', now_sol)
+            print('iteration:', iteration, ' now_sol:', now_sol, ' convergence:', now_conv)
+
 
         while 1:
 
             iteration += 1
 
             # 勾配計算（一時的な解の）
-            temp_nbl = self.nbl_func(temp_sol)
+            [temp_nbl, temp_para_time, temp_total_time] = self.nbl_func(temp_sol)
+            para_time += temp_para_time
+            total_time += temp_total_time
             num_call_nbl += 1
 
             # backtracking
-            [now_lips, temp_call_obj, temp_call_nbl] = self.backtracking(temp_sol, now_lips)
+            [now_lips, temp_call_obj, temp_call_nbl, temp_para_time, temp_total_time] = self.backtracking(temp_sol, now_lips)
+            para_time += temp_para_time
+            total_time += temp_total_time
             num_call_obj += temp_call_obj
             num_call_nbl += temp_call_nbl
 
             # 暫定解の更新
             prev_sol = now_sol
-            now_sol = self.proj_func(temp_sol - temp_nbl/now_lips)
+            [now_sol, temp_para_time, temp_total_time] = self.proj_func(temp_sol - temp_nbl/now_lips)
+            para_time += temp_para_time
+            total_time += temp_total_time
             num_call_proj += 1
-            if self.nbl_func(prev_sol) @ (now_sol - prev_sol) > 0:
+            [prev_nbl, temp_para_time, temp_total_time] = self.nbl_func(prev_sol)
+            para_time += temp_para_time
+            total_time += temp_total_time
+
+            start_time = time.process_time()
+            if prev_nbl @ (now_sol - prev_sol) > 0:
                 t = 1.0
             num_call_nbl += 1
             temp_t = (1.0 + (1.0 + 4.0*t**2.0)**(1.0/2.0))/2.0
             temp_sol = now_sol + ((t - 1.0)/temp_t) * (now_sol - prev_sol)
             temp_sol = self.proj_func(temp_sol)
             t = temp_t
+            end_time = time.process_time()
+            
+            para_time += end_time - start_time
+            total_time += end_time - start_time
 
             # 収束判定の準備
-            conv = self.conv_func(now_sol)
+            [conv, temp_para_time, temp_total_time] = self.conv_func(now_sol)
+            para_time += temp_para_time
+            total_time += temp_total_time
             num_call_conv += 1
 
             if iteration % self.output_iter == 0:
@@ -447,32 +470,30 @@ class FISTA_PROJ_BACK:
                 else:
                     print('iteration:', iteration, ' now_sol:', now_sol, ' convergence:', conv)
 
-                end_time = time.process_time()
-                elapse_time += end_time - start_time
-                now_obj = self.obj_func(now_sol)
+                [now_obj, dammy_para_time, dammy_total_time]  = self.obj_func(now_sol)
                 num_call_obj += 1
-                add_df = pd.DataFrame([[iteration, end_time - start_time, now_obj, conv, now_lips, num_call_obj, num_call_nbl, num_call_proj, num_call_conv, now_sol]], columns=output_data.columns, index=[iteration])
+                add_df = pd.DataFrame([[iteration, para_time, total_time, now_obj, conv, now_lips, num_call_obj, num_call_nbl, num_call_proj, num_call_conv, now_sol]], columns=output_data.columns, index=[iteration])
                 # print(add_df)
                 output_data = output_data.append(add_df)
                 if self.output_root != null:
                     output_data.to_csv(self.output_root)
-                start_time = end_time
 
             # 収束判定
             if conv < self.conv_judge:
                 break
 
-        end_time = time.process_time()
-        elapse_time += end_time - start_time
-
         self.sol = now_sol
         self.iter = iteration
-        self.time = elapse_time
+        self.para_time = para_time
+        self.total_time = total_time
         self.num_call_nbl = num_call_nbl
         self.num_call_obj = num_call_obj
         self.num_call_proj = num_call_proj
         self.num_call_conv = num_call_conv
         self.sol_obj = self.obj_func(self.sol)
+        
+        add_df = pd.DataFrame([[self.iter, self.para_time, self.total_time, self.sol_obj, conv, now_lips, self.num_call_obj, self.num_call_nbl, self.num_call_proj, self.num_call_conv, self.sol]], columns=output_data.columns, index=[iteration])
+        # print(add_df)
         self.output_data = output_data
         if self.output_root != null:
             output_data.to_csv(self.output_root)
@@ -484,22 +505,36 @@ class FISTA_PROJ_BACK:
 
 
     def backtracking(self, now_sol, now_lips):
+
+        para_time = 0.0
+        total_time = 0.0
         
-        now_obj = self.obj_func(now_sol)
-        now_nbl = self.nbl_func(now_sol)
+        [now_obj, temp_para_time, temp_total_time] = self.obj_func(now_sol)
+        para_time += temp_para_time
+        total_time += temp_total_time
+        [now_nbl, temp_para_time, temp_total_time] = self.nbl_func(now_sol)
+        para_time = temp_para_time
+        total_time += temp_total_time
         num_call_obj = 1
         num_call_nbl = 1
+
+        start_time = time.process_time()
         now_nbl_nolm = np.dot(now_nbl, now_nbl)
 
         iota = 0
         while 1:
 
             temp_sol = now_sol - now_nbl/(self.back_para**iota * now_lips)
-            # print(now_sol)
-            # print(temp_sol)
+            end_time = time.process_time()
+            para_time += end_time - start_time
+            total_time += end_time - start_time
 
-            F = self.obj_func(temp_sol)
+            [F, temp_para_time, temp_total_time] = self.obj_func(temp_sol)
+            para_time += temp_para_time
+            total_time += temp_total_time
             num_call_obj += 1
+
+            start_time = time.process_time()
             Q = now_obj - now_nbl_nolm/(2*self.back_para**iota*now_lips)
 
             if F <= Q:
@@ -507,7 +542,11 @@ class FISTA_PROJ_BACK:
 
             iota += 1
 
-        return [self.back_para**iota*now_lips, num_call_obj, num_call_nbl]
+        end_time = time.process_time()
+        para_time += end_time - start_time
+        total_time += end_time - start_time
+
+        return [self.back_para**iota*now_lips, num_call_obj, num_call_nbl, para_time, total_time]
 
 
 
