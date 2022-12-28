@@ -172,7 +172,7 @@ def NGEV_CC_equal(B, b, nodes, links, node_order):
     fista.set_nbl_func(nbl_func)
     fista.set_lips_init(0.1)
     fista.set_back_para(1.1)
-    fista.set_conv_judge(0.03)
+    fista.set_conv_judge(0.1)
     # fista.set_output_iter(1)
     fista.exect_FISTA_back()
 
@@ -278,6 +278,7 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
             start_time = time.process_time()
 
             # 現在の各リンクコストを計算し，costとしてlinksに代入
+
             cost = np.array([list(user_links[user_num]['free_flow_time'])]) + now_sol_MS @ MSU_constMat[user_num]
             user_links[user_num]['cost'] = cost[0]
 
