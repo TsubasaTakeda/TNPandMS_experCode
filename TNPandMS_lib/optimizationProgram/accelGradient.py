@@ -1,6 +1,7 @@
 
 import numpy as np
 import time
+import os
 from sqlalchemy import null
 import pandas as pd
 
@@ -386,9 +387,9 @@ class FISTA_PROJ_BACK:
         [now_obj, temp_para_time, temp_total_time] = self.obj_func(self.x_init)
         [now_conv, temp_para_time, temp_total_time] = self.conv_func(self.x_init)
 
-        output_data = pd.DataFrame([[0, 0.0, 0.0, now_obj, now_conv, self.lips_init, 0, 0, 0, 0, self.x_init]], columns=['Iteration', 'pararel_time', 'total_time', 'now_obj', 'now_conv', 'now_lips', 'num_call_obj', 'num_call_nbl', 'num_call_proj', 'num_call_conv', 'now_sol'])
+        output_data = pd.DataFrame([[0, 0.0, 0.0, now_obj, now_conv, self.lips_init, 0, 0, 0, 0]], columns=['Iteration', 'pararel_time', 'total_time', 'now_obj', 'now_conv', 'now_lips', 'num_call_obj', 'num_call_nbl', 'num_call_proj', 'num_call_conv'])
         if self.output_root != null:
-            output_data.to_csv(self.output_root)
+            output_data.to_csv(os.path.join(self.output_root, 'result.csv'))
 
 
         # 初期設定（反復回数・勾配関数の呼び出し回数を初期化）
@@ -412,9 +413,9 @@ class FISTA_PROJ_BACK:
         total_time = 0.0
 
         if len(now_sol) > 5:
-            print('iteration:', iteration, ' now_sol:', now_sol[:5], ' convergence:', now_conv)
+            print('iteration:', iteration, ' now_sol:', now_sol[:5], ' now_obj:', now_obj, ' convergence:', now_conv)
         else:
-            print('iteration:', iteration, ' now_sol:', now_sol, ' convergence:', now_conv)
+            print('iteration:', iteration, ' now_sol:', now_sol, ' now_obj:', now_obj, ' convergence:', now_conv)
 
 
         while 1:
@@ -466,19 +467,20 @@ class FISTA_PROJ_BACK:
             num_call_conv += 1
 
             if iteration % self.output_iter == 0:
+                
+                [now_obj, dammy_para_time, dammy_total_time]  = self.obj_func(now_sol)
 
                 if len(now_sol) > 5:
-                    print('iteration:', iteration, ' now_sol:', now_sol[:5], ' convergence:', conv)
+                    print('iteration:', iteration, ' now_sol:', now_sol[:5], ' now_obj:', now_obj, ' convergence:', conv)
                 else:
-                    print('iteration:', iteration, ' now_sol:', now_sol, ' convergence:', conv)
+                    print('iteration:', iteration, ' now_sol:', now_sol, ' now_obj:', now_obj, ' convergence:', conv)
 
-                [now_obj, dammy_para_time, dammy_total_time]  = self.obj_func(now_sol)
-                num_call_obj += 1
-                add_df = pd.DataFrame([[iteration, para_time, total_time, now_obj, conv, now_lips, num_call_obj, num_call_nbl, num_call_proj, num_call_conv, now_sol]], columns=output_data.columns, index=[iteration])
+                # num_call_obj += 1
+                add_df = pd.DataFrame([[iteration, para_time, total_time, now_obj, conv, now_lips, num_call_obj, num_call_nbl, num_call_proj, num_call_conv]], columns=output_data.columns)
                 # print(add_df)
                 output_data = output_data.append(add_df)
                 if self.output_root != null:
-                    output_data.to_csv(self.output_root)
+                    output_data.to_csv(os.path.join(self.output_root, 'result.csv'))
 
             # 収束判定
             if conv < self.conv_judge:
@@ -494,11 +496,12 @@ class FISTA_PROJ_BACK:
         self.num_call_conv = num_call_conv
         self.sol_obj = self.obj_func(self.sol)
         
-        add_df = pd.DataFrame([[self.iter, self.para_time, self.total_time, self.sol_obj, conv, now_lips, self.num_call_obj, self.num_call_nbl, self.num_call_proj, self.num_call_conv, self.sol]], columns=output_data.columns, index=[iteration])
+        add_df = pd.DataFrame([[self.iter, self.para_time, self.total_time, self.sol_obj, conv, now_lips, self.num_call_obj, self.num_call_nbl, self.num_call_proj, self.num_call_conv]], columns=output_data.columns)
         # print(add_df)
         self.output_data = output_data
         if self.output_root != null:
-            output_data.to_csv(self.output_root)
+            output_data.to_csv(os.path.join(self.output_root, 'result.csv'))
+            np.savetxt(os.path.join(self.output_root, 'sol.csv'), self.sol)
 
         print('finish accel gradient projection method')
 

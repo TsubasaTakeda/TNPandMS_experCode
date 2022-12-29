@@ -475,7 +475,7 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
     fista.set_conv_func(conv_func)
     fista.set_lips_init(0.1)
     fista.set_back_para(1.1)
-    fista.set_conv_judge(0.03)
+    fista.set_conv_judge(0.01)
     fista.set_output_iter(1)
     fista.set_output_root(output_root)
     fista.exect_FISTA_proj_back()
