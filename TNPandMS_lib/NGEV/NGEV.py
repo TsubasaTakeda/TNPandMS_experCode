@@ -199,6 +199,127 @@ def NGEV_CC_equal(B, b, nodes, links, node_order):
     return 0
         
 
+# NGEV-CC配分アルゴリズム (no cycle)　※起点ノードはdownstream orderの最初のノード
+# https://drive.google.com/file/d/19siddz0k3gIzzLCfEeQHc9OIGSd3_gav/view：式(27)-(29)の(29)が等式制約ver.
+# B: ndarray(|*|×|リンク|): 容量制約条件の係数行列
+# b: ndarray(|*|): 容量制約条件の右辺
+# nodes: Pandas: index, theta_i^o, q_d^o(demand);
+# links: Pandas: index, init_node, term_node, free_flow_time, alpha_{ij}^o; (indexの順にソート済みのものを入れる)
+# node_order: [[downstream order], [upstream order]]
+def NGEV_CC(B, b, nodes, links, node_order):
+
+    # 勾配関数
+    def nbl_func(now_sol):
+
+        # 現在の各リンクコストを計算し，costとしてlinksに代入
+        cost = np.array([list(links['free_flow_time'])]) + now_sol @ B
+        links['cost'] = cost[0]
+
+        # cost を基に，NGEV配分を計算
+        temp_time = NGEV(nodes, links, node_order, cost_name='cost')
+        # nodes.drop('exp_cost', axis=1, inplace=True)
+        # nodes.drop('NGEV_flow', axis=1, inplace=True)
+        # links.drop('percent', axis=1, inplace=True)
+
+        # 勾配を計算
+        now_flow = np.array([list(links['NGEV_flow'])])
+        nbl = (B @ now_flow.T).T[0] - b
+        # minに合わせるために符号を逆に
+        nbl = -nbl
+        # links.drop('NGEV_flow', axis=1, inplace=True)
+        # print(nbl)
+
+        return nbl, temp_time, temp_time
+
+    def obj_func(now_sol):
+
+        # 現在の各リンクコストを計算し，costとしてlinksに代入
+        cost = np.array([list(links['free_flow_time'])]) + now_sol @ B
+        links['cost'] = cost[0]
+
+        # cost を基に，NGEV配分を計算
+        temp_time = NGEV(nodes, links, node_order, cost_name='cost')
+        # nodes.drop('NGEV_flow', axis=1, inplace=True)
+        # links.drop('percent', axis=1, inplace=True)
+        # links.drop('NGEV_flow', axis=1, inplace=True)
+        # print(links)
+        # print(nodes)
+
+        # 目的関数を計算
+        exp_cost = np.array([list(nodes['exp_cost'])])
+        demand = np.array([list(nodes['demand'])])
+        obj = exp_cost @ demand.T - now_sol @ b
+        # minに合わせるために符号を逆に
+        obj = -obj
+        # nodes.drop('exp_cost', axis=1, inplace=True)
+        # print(obj)
+
+        return obj[0][0], temp_time, temp_time
+
+    def proj_func(now_sol):
+
+        start_time = time.process_time()
+
+        for i in range(len(now_sol)):
+            if now_sol[i] < 0.0:
+                now_sol[i] = 0.0
+
+        end_time = time.process_time()
+
+        return now_sol, end_time-start_time, end_time-start_time
+
+    def conv_func(now_sol):
+
+        [now_nbl, para_time, total_time] = nbl_func(now_sol)
+        start_time = time.process_time()
+        if min(now_nbl) > 0:
+            conv = 0.0
+        else:
+            conv = -min(now_nbl)
+        end_time = time.process_time()
+
+        return conv, para_time + (end_time - start_time), total_time + (end_time-start_time)
+    
+
+    # linksの準備
+    links['now_sol'] = 0.0
+    links['cost'] = list(links['free_flow_time'])
+
+    # 初期解の設定
+    sol_init = np.zeros(B.shape[0])
+
+    fista = ag.FISTA_PROJ_BACK()
+    fista.set_x_init(sol_init)
+    fista.set_obj_func(obj_func)
+    fista.set_nbl_func(nbl_func)
+    fista.set_proj_func(proj_func)
+    fista.set_conv_func(conv_func)
+    fista.set_lips_init(0.1)
+    fista.set_back_para(1.1)
+    fista.set_conv_judge(0.01)
+    fista.set_output_iter(1)
+    fista.exect_FISTA_proj_back()
+
+    # print('\n\n')
+
+    # print('sol: ', fista.sol)
+    # print('sol_obj: ', fista.sol_obj)
+    # print('iteration: ', fista.iter)
+    # print('elapsed_time: ', fista.time)
+    # print('num_call_nabla: ', fista.num_call_nbl)
+    # print('num_call_obj: ', fista.num_call_obj)
+    # def nbl_func(now_sol, nodes, links, node_order):
+
+    # 現在の各リンクコストを計算し，costとしてlinksに代入
+    cost = np.array([list(links['free_flow_time'])]) + fista.sol @ B
+    links['cost'] = cost[0]
+    NGEV(nodes, links, node_order, cost_name='cost')
+    # print(nodes)
+    # print(links)
+
+    return fista.sol, fista.para_time, fista.total_time
+
+
 
 
 def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root):
@@ -597,38 +718,33 @@ if __name__ == '__main__':
     for file in user_files:
         MSU_constMat[int(file)] = rsm.read_sparse_mat(user_root + '\\' + file + '\MSU_constMat')
         
-    output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result')
-    os.makedirs(output_root, exist_ok=True)
+    # output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result')
+    # os.makedirs(output_root, exist_ok=True)
     
-    NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root+'\\result.csv')
+    # NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root+'\\result.csv')
 
 
 
 
-    # for orig_node in veh_trips[0].keys():
 
-    #     print('origin_node = ', orig_node)
 
-    #     # OD需要をセット
-    #     veh_nodes[0]['demand'] = 0.0
-    #     for dest_node in veh_trips[0][orig_node].keys():
-    #         veh_nodes[0]['demand'][dest_node] = veh_trips[0][orig_node][dest_node]
+    for orig_node in veh_trips[0].keys():
 
-    #     down_order = GEVsub.make_node_downstream_order(veh_nodes[0], veh_links[0], orig_node)
-    #     up_order = GEVsub.make_node_upstream_order(veh_nodes[0], veh_links[0])
+        print('origin_node = ', orig_node)
 
-    #     NGEV(veh_nodes[0], veh_links[0], [down_order, up_order])
+        # OD需要をセット
+        veh_nodes[0]['demand'] = 0.0
+        for dest_node in veh_trips[0][orig_node].keys():
+            veh_nodes[0]['demand'][dest_node] = veh_trips[0][orig_node][dest_node]
 
-    #     print(veh_links[0])
-    #     print(veh_nodes[0])
+        down_order = GEVsub.make_node_downstream_order(veh_nodes[0], veh_links[0], orig_node)
+        up_order = GEVsub.make_node_upstream_order(veh_nodes[0], veh_links[0])
 
-    # B = sparse.lil_matrix((len(links), len(links)))
-    # for i in range(len(links)):
-    #     B[i, i] = 1.0
-    # b = np.ones(len(links))*5.0
-    # # NGEV_CC_equal(B, b, nodes, links, [down_order, up_order])
+        NGEV_CC(TNP_constMat[0], np.array(TS_links['capacity']), veh_nodes[0], veh_links[0], [down_order, up_order])
 
-    # NGEV(nodes, links, [down_order, up_order], cost_name='free_flow_time')
+        print(veh_links[0])
+        print(veh_nodes[0])
+
     
     # print(nodes)
     # print('\n')
