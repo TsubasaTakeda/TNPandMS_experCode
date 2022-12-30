@@ -295,7 +295,8 @@ class FISTA_PROJ_BACK:
         self.num_call_conv = null
         self.num_call_proj = null
         self.lips = null
-        self.time = null
+        self.para_time = null
+        self.total_time = null
         # 演算等に必要なデータ
         self.obj_func = null
         self.nbl_func = null

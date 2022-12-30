@@ -9,6 +9,7 @@ import math
 import NGEV_sub as GEVsub
 import readNetwork as rn
 import accelGradient as ag
+import MSA as msa
 import readSparseMat as rsm
 
 
@@ -511,7 +512,7 @@ def NGEV_CC_TNP(TNP_constMat, capacity, veh_nodes, veh_links, veh_trips, fft_nam
     fista.set_conv_func(conv_func)
     fista.set_lips_init(0.1)
     fista.set_back_para(1.1)
-    fista.set_conv_judge(0.01)
+    fista.set_conv_judge(0.1)
     fista.set_output_iter(1)
     # fista.set_output_root(output_root)
     fista.exect_FISTA_proj_back()
@@ -708,7 +709,7 @@ def NGEV_CC_MS(MSU_constMat, MS_capacity, user_nodes, user_links, user_trips, ff
     fista.set_conv_func(conv_func)
     fista.set_lips_init(0.1)
     fista.set_back_para(1.1)
-    fista.set_conv_judge(0.01)
+    fista.set_conv_judge(0.1)
     fista.set_output_iter(1)
     # fista.set_output_root(output_root)
     fista.exect_FISTA_proj_back()
@@ -777,24 +778,169 @@ def NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMa
                 veh_links[veh_num].drop('percent', axis=1, inplace=True)
                 veh_links[veh_num].drop('NGEV_flow', axis=1, inplace=True)
 
-            para_time += max(temp_para_time)
+        para_time += max(temp_para_time)
 
         return MS_capacity, para_time, total_time
 
 
-    TNP_price = np.zeros(TNP_constMat[list(TNP_constMat.keys())[0]].shape[0])
-    [MS_capacity, para_time , total_time] = TNP_price_to_MS_capacity(TNP_price)
+    def TNP_price_to_sol(TNP_price, fft_name):
+
+        para_time = 0.0
+        total_time = 0.0
+        temp_para_time = []
+
+        now_flow = np.array([])
+        
+
+        for veh_num in veh_nodes.keys():
+
+            start_time = time.process_time()
+
+            # 現在の各リンクコストを計算し，costとしてlinksに代入
+            cost = np.array([list(veh_links[veh_num][fft_name])]) + TNP_price @ TNP_constMat[veh_num]
+            veh_links[veh_num]['cost'] = cost[0]
+
+            end_time = time.process_time()
+            para_time += end_time - start_time
+            total_time += end_time - start_time
 
 
-    NGEV_CC_MS(MSU_constMat, MS_capacity, user_nodes, user_links, user_trips)
+            for origin_node in veh_trips[veh_num].keys():
+
+                # ノード順序を作成
+                down_order = GEVsub.make_node_downstream_order(veh_nodes[veh_num], veh_links[veh_num], origin_node)
+                up_order = GEVsub.make_node_upstream_order(veh_nodes[veh_num], veh_links[veh_num])
+
+                # OD需要を設定
+                veh_nodes[veh_num]['demand'] = 0.0
+                for dest_node in veh_trips[veh_num][origin_node].keys():
+                    veh_nodes[veh_num].loc[dest_node, 'demand'] = veh_trips[veh_num][origin_node][dest_node]
+
+                # cost を基に，NGEV配分を計算
+                temp_time = NGEV(veh_nodes[veh_num], veh_links[veh_num], [down_order, up_order], cost_name='cost')
+                temp_para_time.append(temp_time)
+                total_time += temp_time
+
+                start_time = time.process_time()
+
+                now_flow = np.hstack([now_flow, np.array(list(veh_links[veh_num]['NGEV_flow']))])
+
+                end_time = time.process_time()
+                para_time += end_time - start_time
+                total_time += end_time - start_time
+
+                veh_nodes[veh_num].drop('NGEV_flow', axis=1, inplace=True)
+                veh_nodes[veh_num].drop('exp_cost', axis=1, inplace=True)
+                veh_nodes[veh_num].drop('demand', axis=1, inplace=True)
+                veh_links[veh_num].drop('percent', axis=1, inplace=True)
+                veh_links[veh_num].drop('NGEV_flow', axis=1, inplace=True)
+
+        return now_flow, para_time, total_time
 
 
-    [TNP_price, para_time, total_time] = NGEV_CC_TNP(TNP_constMat, np.array(list(TS_links['capacity'])), veh_nodes, veh_links, veh_trips)
+
+    def veh_sol_to_MS_capacity(veh_sol):
+
+        para_time = 0.0
+        total_time = 0.0
+
+        MS_capacity = np.zeros(MSV_constMat[list(MSV_constMat.keys())[0]].shape[0])
+        start_index = 0
+
+        start_time = time.process_time()
+
+        for veh_num in veh_nodes.keys():
+
+            for origin_node in veh_trips[veh_num].keys():
+
+                now_flow = np.array([list(veh_sol[start_index:len(veh_links[veh_num])])])
+                MS_capacity += (MSV_constMat[veh_num] @ now_flow.T).T[0]
+                start_index += len(veh_links[veh_num])
+
+        end_time = time.process_time()
+        para_time += end_time - start_time
+        total_time += end_time - start_time
+
+        return MS_capacity, para_time, total_time
 
 
 
+    def MS_price_to_veh_fft(MS_price):
+        
+        para_time = 0.0
+        total_time = 0.0
+        temp_para_time = []
+
+        for veh_num in veh_nodes.keys():
+
+            start_time = time.process_time()
+
+            # 現在の各リンクコストを計算し，costとしてlinksに代入
+            fft_ms = np.array([list(veh_links[veh_num]['free_flow_time'])]) + MS_price @ MSV_constMat[veh_num]
+            veh_links[veh_num]['fft_ms'] = fft_ms[0]
+
+            end_time = time.process_time()
+            total_time += end_time - start_time
+            temp_para_time.append(end_time - start_time)
+
+        para_time += max(temp_para_time)
+
+        return para_time, total_time
 
 
+
+    def dir_func(now_sol):
+
+        para_time = 0.0
+        total_time = 0.0
+
+        [MS_capacity, temp_para_time, temp_total_time] = veh_sol_to_MS_capacity(now_sol)
+        para_time += temp_para_time
+        total_time += temp_total_time
+
+        MS_fista = NGEV_CC_MS(MSU_constMat, MS_capacity, user_nodes, user_links, user_trips)
+        MS_price = MS_fista.sol
+        para_time += MS_fista.para_time
+        total_time += MS_fista.total_time
+
+        [temp_para_time, temp_total_time] = MS_price_to_veh_fft(MS_price)
+        para_time += temp_para_time
+        total_time += temp_total_time
+
+        [TNP_price, temp_para_time, temp_total_time] = NGEV_CC_TNP(TNP_constMat, np.array(list(TS_links['capacity'])), veh_nodes, veh_links, veh_trips, fft_name='fft_ms')
+        temp_sol = TNP_price_to_sol(TNP_price, 'fft_ms')
+        para_time += temp_para_time
+        total_time += temp_total_time
+
+        dir_vec = temp_sol - now_sol
+
+        return dir_vec, para_time, total_time
+
+    
+
+    veh_msa = msa.MSA()
+    # veh_msa.set_x_init(sol_init)
+    # veh_msa.set_obj_func(obj_func)
+    veh_msa.set_dir_func(dir_func)
+    veh_msa.set_conv_judge(0.1)
+    veh_msa.set_output_iter(1)
+    veh_msa.set_output_root(output_root)
+    veh_msa.exect_MSA()
+
+
+    # print('\n\n')
+
+    # print('sol: ', fista.sol)
+    print('sol_obj: ', veh_msa.sol_obj)
+    print('iteration: ', veh_msa.iter)
+    print('pararel_time: ', veh_msa.para_time)
+    print('total_time: ', veh_msa.total_time)
+    print('num_call_obj: ', veh_msa.num_call_obj)
+    print('num_call_dir: ', veh_msa.num_call_dir)
+    # print('output_data: ')
+    # print(fista.output_data)
+
+    return veh_msa
 
 
 
@@ -1080,7 +1226,7 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
     fista.set_conv_func(conv_func)
     fista.set_lips_init(0.1)
     fista.set_back_para(1.1)
-    fista.set_conv_judge(0.01)
+    fista.set_conv_judge(0.1)
     fista.set_output_iter(1)
     fista.set_output_root(output_root)
     fista.exect_FISTA_proj_back()
@@ -1090,7 +1236,8 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
     # print('sol: ', fista.sol)
     print('sol_obj: ', fista.sol_obj)
     print('iteration: ', fista.iter)
-    print('elapsed_time: ', fista.time)
+    print('pararel_time: ', fista.para_time)
+    print('total_time: ', fista.total_time)
     print('num_call_nabla: ', fista.num_call_nbl)
     print('num_call_obj: ', fista.num_call_obj)
     print('num_call_proj: ', fista.num_call_proj)
@@ -1202,7 +1349,7 @@ if __name__ == '__main__':
     for file in user_files:
         MSU_constMat[int(file)] = rsm.read_sparse_mat(user_root + '\\' + file + '\MSU_constMat')
         
-    output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result')
+    output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'MSA')
     os.makedirs(output_root, exist_ok=True)
     
     # NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)

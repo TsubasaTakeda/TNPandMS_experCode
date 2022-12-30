@@ -16,7 +16,8 @@ class MSA:
         self.num_call_obj = null
         self.num_call_dir = null
         self.num_call_conv = null
-        self.time = null
+        self.para_time = null
+        self.total_time = null
         # 演算等に必要なデータ
         self.obj_func = null
         self.dir_func = null
@@ -40,6 +41,9 @@ class MSA:
 
     def set_x_init(self, x_init):
         self.x_init = x_init
+    
+    def set_conv_judge(self, conv):
+        self.conv_judge = conv
 
     def set_output_root(self, root):
         self.output_root = root
@@ -68,7 +72,7 @@ class MSA:
             is_Executed = -1
 
         if is_Executed:
-            print("MS cannot be executed.\n\n")
+            print("MSA cannot be executed.\n\n")
             return -1
 
         print('start MSA!')
@@ -112,7 +116,7 @@ class MSA:
             total_time += temp_total_time
             num_call_dir += 1
 
-            now_sol = prev_sol + dir_vec/(iteration + 1)
+            now_sol = prev_sol + dir_vec/(iteration + 1.0)
             [now_obj, temp_para_time, temp_total_time] = self.obj_func(now_sol)  
             para_time += temp_para_time 
             total_time += temp_total_time
