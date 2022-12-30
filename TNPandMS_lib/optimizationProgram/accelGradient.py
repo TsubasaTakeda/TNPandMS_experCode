@@ -494,10 +494,10 @@ class FISTA_PROJ_BACK:
         self.num_call_obj = num_call_obj
         self.num_call_proj = num_call_proj
         self.num_call_conv = num_call_conv
-        self.sol_obj = self.obj_func(self.sol)
+        [self.sol_obj, dummy_para_time, dummy_total_time] = self.obj_func(self.sol)
         
         add_df = pd.DataFrame([[self.iter, self.para_time, self.total_time, self.sol_obj, conv, now_lips, self.num_call_obj, self.num_call_nbl, self.num_call_proj, self.num_call_conv]], columns=output_data.columns)
-        # print(add_df)
+        output_data = output_data.append(add_df)
         self.output_data = output_data
         if self.output_root != null:
             output_data.to_csv(os.path.join(self.output_root, 'result.csv'))
