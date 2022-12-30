@@ -44,6 +44,12 @@ def NGEV(nodes, links, node_order, alpha_name = 'alpha', theta_name = 'theta', c
             continue
 
         for index, link in link_set.iterrows():
+            if -nodes[theta_name][i] * (link[cost_name] + nodes['exp_cost'][link['init_node']]) > max_exp_dbl:
+                exp_sum = max_dbl
+                break
+            elif link[alpha_name] * math.exp(-nodes[theta_name][i] * (link[cost_name] + nodes['exp_cost'][link['init_node']])) > max_dbl - exp_sum:
+                exp_sum = max_dbl
+                break
             exp_sum += link[alpha_name] * math.exp(-nodes[theta_name][i] * (link[cost_name] + nodes['exp_cost'][link['init_node']]))
     
         if exp_sum == 0:
@@ -85,8 +91,13 @@ def NGEV(nodes, links, node_order, alpha_name = 'alpha', theta_name = 'theta', c
                 else:
                     links.loc[index, 'percent'] = 0
         else:
+            sum_per = 0.0
             for index, link in link_set.iterrows():
+                if  - nodes[theta_name][i] * ( link[cost_name] + nodes['exp_cost'][link['init_node']] ) > max_exp_dbl:
+                    links.loc[index, 'percent'] = 1.0 - sum_per
+                    break
                 links.loc[index, 'percent'] = link[alpha_name] * math.exp( - nodes[theta_name][i] * ( link[cost_name] + nodes['exp_cost'][link['init_node']] ) ) / math.exp(- nodes[theta_name][i] * nodes['exp_cost'][i])
+                sum_per += links.loc[index, 'percent']
         for index, link in link_set.iterrows():
             links.loc[index, 'NGEV_flow'] = nodes['NGEV_flow'][i] * links['percent'][index]
 
@@ -578,6 +589,7 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
             conv = 0.0
         else:
             conv = -min(now_nbl)
+        # conv = - (now_sol @ now_nbl)
         end_time = time.process_time()
 
         return conv, para_time + (end_time - start_time), total_time + (end_time-start_time)
@@ -718,32 +730,32 @@ if __name__ == '__main__':
     for file in user_files:
         MSU_constMat[int(file)] = rsm.read_sparse_mat(user_root + '\\' + file + '\MSU_constMat')
         
-    # output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result')
-    # os.makedirs(output_root, exist_ok=True)
+    output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result')
+    os.makedirs(output_root, exist_ok=True)
     
-    # NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root+'\\result.csv')
+    NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
 
 
 
 
 
 
-    for orig_node in veh_trips[0].keys():
+    # for orig_node in veh_trips[0].keys():
 
-        print('origin_node = ', orig_node)
+    #     print('origin_node = ', orig_node)
 
-        # OD需要をセット
-        veh_nodes[0]['demand'] = 0.0
-        for dest_node in veh_trips[0][orig_node].keys():
-            veh_nodes[0]['demand'][dest_node] = veh_trips[0][orig_node][dest_node]
+    #     # OD需要をセット
+    #     veh_nodes[0]['demand'] = 0.0
+    #     for dest_node in veh_trips[0][orig_node].keys():
+    #         veh_nodes[0]['demand'][dest_node] = veh_trips[0][orig_node][dest_node]
 
-        down_order = GEVsub.make_node_downstream_order(veh_nodes[0], veh_links[0], orig_node)
-        up_order = GEVsub.make_node_upstream_order(veh_nodes[0], veh_links[0])
+    #     down_order = GEVsub.make_node_downstream_order(veh_nodes[0], veh_links[0], orig_node)
+    #     up_order = GEVsub.make_node_upstream_order(veh_nodes[0], veh_links[0])
 
-        NGEV_CC(TNP_constMat[0], np.array(TS_links['capacity']), veh_nodes[0], veh_links[0], [down_order, up_order])
+    #     NGEV_CC(TNP_constMat[0], np.array(TS_links['capacity']), veh_nodes[0], veh_links[0], [down_order, up_order])
 
-        print(veh_links[0])
-        print(veh_nodes[0])
+    #     print(veh_links[0])
+    #     print(veh_nodes[0])
 
     
     # print(nodes)
