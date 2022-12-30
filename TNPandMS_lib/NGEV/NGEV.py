@@ -93,11 +93,13 @@ def NGEV(nodes, links, node_order, alpha_name = 'alpha', theta_name = 'theta', c
         else:
             sum_per = 0.0
             for index, link in link_set.iterrows():
+                non_index_set = []
                 if  - nodes[theta_name][i] * ( link[cost_name] + nodes['exp_cost'][link['init_node']] ) > max_exp_dbl:
-                    links.loc[index, 'percent'] = 1.0 - sum_per
-                    break
+                    non_index_set.append(index)
                 links.loc[index, 'percent'] = link[alpha_name] * math.exp( - nodes[theta_name][i] * ( link[cost_name] + nodes['exp_cost'][link['init_node']] ) ) / math.exp(- nodes[theta_name][i] * nodes['exp_cost'][i])
                 sum_per += links.loc[index, 'percent']
+            for index in non_index_set:
+                links.loc[index, 'percent'] = (1.0 - sum_per)/len(non_index_set)
         for index, link in link_set.iterrows():
             links.loc[index, 'NGEV_flow'] = nodes['NGEV_flow'][i] * links['percent'][index]
 
@@ -511,7 +513,7 @@ def NGEV_CC_TNP(TNP_constMat, capacity, veh_nodes, veh_links, veh_trips, fft_nam
     fista.set_back_para(1.1)
     fista.set_conv_judge(0.01)
     fista.set_output_iter(1)
-    fista.set_output_root(output_root)
+    # fista.set_output_root(output_root)
     fista.exect_FISTA_proj_back()
 
     # print('\n\n')
@@ -528,6 +530,278 @@ def NGEV_CC_TNP(TNP_constMat, capacity, veh_nodes, veh_links, veh_trips, fft_nam
     print(fista.output_data)
 
     return fista
+
+
+
+
+# NGEV-CC配分アルゴリズム (no cycle)　※起点ノードはdownstream orderの最初のノード
+# https://drive.google.com/file/d/19siddz0k3gIzzLCfEeQHc9OIGSd3_gav/view：式(27)-(29)の(29)が等式制約ver.
+# B: ndarray(|*|×|リンク|): 容量制約条件の係数行列
+# b: ndarray(|*|): 容量制約条件の右辺
+# nodes: Pandas: index, theta_i^o, q_d^o(demand);
+# links: Pandas: index, init_node, term_node, free_flow_time, alpha_{ij}^o; (indexの順にソート済みのものを入れる)
+# node_order: [[downstream order], [upstream order]]
+def NGEV_CC_MS(MSU_constMat, MS_capacity, user_nodes, user_links, user_trips, fft_name = 'free_flow_time'):
+
+    # 勾配関数
+    def nbl_func(now_sol_MS):
+
+        para_time = 0.0
+        total_time = 0.0
+
+        num_MSconst = MSU_constMat[list(user_nodes.keys())[0]].shape[0]
+
+        temp_para_time = []
+
+        nbl_MS = -MS_capacity
+
+        
+        for user_num in user_nodes.keys():
+
+            start_time = time.process_time()
+
+            # 現在の各リンクコストを計算し，costとしてlinksに代入
+            cost = np.array([list(user_links[user_num][fft_name])]) + now_sol_MS @ MSU_constMat[user_num]
+            user_links[user_num]['cost'] = cost[0]
+
+            end_time = time.process_time()
+            para_time += end_time - start_time
+            total_time += end_time - start_time
+
+            for origin_node in user_trips[user_num].keys():
+                
+                # ノード順序を作成
+                down_order = GEVsub.make_node_downstream_order(user_nodes[user_num], user_links[user_num], origin_node)
+                up_order = GEVsub.make_node_upstream_order(user_nodes[user_num], user_links[user_num])
+
+                # OD需要を設定
+                user_nodes[user_num]['demand'] = 0.0
+                for dest_node in user_trips[user_num][origin_node].keys():
+                    user_nodes[user_num].loc[dest_node, 'demand'] = user_trips[user_num][origin_node][dest_node]
+
+                # cost を基に，NGEV配分を計算
+                temp_time = NGEV(user_nodes[user_num], user_links[user_num], [down_order, up_order], cost_name='cost')
+                temp_para_time.append(temp_time)
+                total_time += temp_time
+
+                start_time = time.process_time()
+
+                now_flow = np.array([list(user_links[user_num]['NGEV_flow'])])
+                nbl_MS += (MSU_constMat[user_num] @ now_flow.T).T[0]
+
+                end_time = time.process_time()
+                para_time += end_time - start_time
+                total_time += end_time - start_time
+
+                user_nodes[user_num].drop('NGEV_flow', axis=1, inplace=True)
+                user_nodes[user_num].drop('exp_cost', axis=1, inplace=True)
+                user_nodes[user_num].drop('demand', axis=1, inplace=True)
+                user_links[user_num].drop('percent', axis=1, inplace=True)
+                user_links[user_num].drop('NGEV_flow', axis=1, inplace=True)
+
+        para_time += max(temp_para_time)
+
+        # min に合わせるために符号を逆に
+        nbl_MS = -nbl_MS
+
+        return nbl_MS, para_time, total_time
+        
+
+    def obj_func(now_sol_MS):
+
+        
+        para_time = 0.0
+        total_time = 0.0
+
+        num_MSconst = MSU_constMat[list(user_nodes.keys())[0]].shape[0]
+
+        temp_para_time = []
+
+        obj = 0.0
+
+        for user_num in user_nodes.keys():
+
+            start_time = time.process_time()
+
+            # 現在の各リンクコストを計算し，costとしてlinksに代入
+            cost = np.array([list(user_links[user_num][fft_name])]) + now_sol_MS @ MSU_constMat[user_num]
+            user_links[user_num]['cost'] = cost[0]
+
+            end_time = time.process_time()
+            para_time += end_time - start_time
+            total_time += end_time - start_time
+
+            for origin_node in user_trips[user_num].keys():
+
+                # ノード順序を作成
+                down_order = GEVsub.make_node_downstream_order(user_nodes[user_num], user_links[user_num], origin_node)
+                up_order = GEVsub.make_node_upstream_order(user_nodes[user_num], user_links[user_num])
+
+                # OD需要を設定
+                user_nodes[user_num]['demand'] = 0.0
+                for dest_node in user_trips[user_num][origin_node].keys():
+                    user_nodes[user_num].loc[dest_node, 'demand'] = user_trips[user_num][origin_node][dest_node]
+
+                # cost を基に，NGEV配分を計算
+                temp_time = NGEV(user_nodes[user_num], user_links[user_num], [down_order, up_order], cost_name='cost')
+                temp_para_time.append(temp_time)
+                total_time += temp_time
+
+                exp_cost = np.array([list(user_nodes[user_num]['exp_cost'])])
+                demand = np.array([list(user_nodes[user_num]['demand'])])
+                start_time = time.process_time()
+                obj += (exp_cost @ demand.T)[0][0]
+                end_time = time.process_time()
+                para_time += end_time - start_time
+                total_time += end_time - start_time
+
+                user_nodes[user_num].drop('NGEV_flow', axis=1, inplace=True)
+                user_nodes[user_num].drop('exp_cost', axis=1, inplace=True)
+                user_nodes[user_num].drop('demand', axis=1, inplace=True)
+                user_links[user_num].drop('percent', axis=1, inplace=True)
+                user_links[user_num].drop('NGEV_flow', axis=1, inplace=True)
+
+
+        # 目的関数を計算
+        obj -= now_sol_MS @ MS_capacity
+        # minに合わせるために符号を逆に
+        obj = -obj
+
+        para_time += max(temp_para_time)
+ 
+        return obj, para_time, total_time
+
+    def proj_func(now_sol):
+
+        start_time = time.process_time()
+
+        for i in range(len(now_sol)):
+            if now_sol[i] < 0.0:
+                now_sol[i] = 0.0
+
+        end_time = time.process_time()
+
+        return now_sol, end_time-start_time, end_time-start_time
+
+    def conv_func(now_sol):
+
+        [now_nbl, para_time, total_time] = nbl_func(now_sol)
+        start_time = time.process_time()
+        if min(now_nbl) > 0:
+            conv = 0.0
+        else:
+            conv = -min(now_nbl)
+        # conv = - (now_sol @ now_nbl)
+        end_time = time.process_time()
+
+        return conv, para_time + (end_time - start_time), total_time + (end_time-start_time)
+
+    # 初期解の設定
+    num_MSconst = MSU_constMat[list(user_nodes.keys())[0]].shape[0]
+    sol_init = np.zeros(num_MSconst)
+
+    fista = ag.FISTA_PROJ_BACK()
+    fista.set_x_init(sol_init)
+    fista.set_obj_func(obj_func)
+    fista.set_nbl_func(nbl_func)
+    fista.set_proj_func(proj_func)
+    fista.set_conv_func(conv_func)
+    fista.set_lips_init(0.1)
+    fista.set_back_para(1.1)
+    fista.set_conv_judge(0.01)
+    fista.set_output_iter(1)
+    # fista.set_output_root(output_root)
+    fista.exect_FISTA_proj_back()
+
+    # print('\n\n')
+
+    print('sol: ', fista.sol)
+    print('sol_obj: ', fista.sol_obj)
+    print('iteration: ', fista.iter)
+    print('elapsed_time: ', fista.time)
+    print('num_call_nabla: ', fista.num_call_nbl)
+    print('num_call_obj: ', fista.num_call_obj)
+    print('num_call_proj: ', fista.num_call_proj)
+    print('num_call_conv: ', fista.num_call_conv)
+    print('output_data: ')
+    print(fista.output_data)
+
+    return fista
+
+
+def NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root):
+
+    def TNP_price_to_MS_capacity(TNP_price):
+
+        para_time = 0.0
+        total_time = 0.0
+        temp_para_time = []
+
+        MS_capacity = np.zeros(MSV_constMat[list(MSV_constMat.keys())[0]].shape[0])
+
+
+        for veh_num in veh_nodes.keys():
+
+            # 現在の各リンクコストを計算し，costとしてlinksに代入
+            cost = np.array([list(veh_links[veh_num]['free_flow_time'])]) + TNP_price @ TNP_constMat[veh_num]
+            veh_links[veh_num]['cost'] = cost[0]
+
+            for origin_node in veh_trips[veh_num].keys():
+
+                # ノード順序を作成
+                down_order = GEVsub.make_node_downstream_order(veh_nodes[veh_num], veh_links[veh_num], origin_node)
+                up_order = GEVsub.make_node_upstream_order(veh_nodes[veh_num], veh_links[veh_num])
+
+                # OD需要を設定
+                veh_nodes[veh_num]['demand'] = 0.0
+                for dest_node in veh_trips[veh_num][origin_node].keys():
+                    veh_nodes[veh_num].loc[dest_node, 'demand'] = veh_trips[veh_num][origin_node][dest_node]
+
+                # cost を基に，NGEV配分を計算
+                temp_time = NGEV(veh_nodes[veh_num], veh_links[veh_num], [down_order, up_order], cost_name='cost')
+                temp_para_time.append(temp_time)
+                total_time += temp_time
+
+                start_time = time.process_time()
+
+                now_flow = np.array([list(veh_links[veh_num]['NGEV_flow'])])
+                MS_capacity += (MSV_constMat[veh_num] @ now_flow.T).T[0]
+
+                end_time = time.process_time()
+                temp_para_time.append(end_time - start_time)
+                total_time += end_time - start_time
+
+                veh_nodes[veh_num].drop('NGEV_flow', axis=1, inplace=True)
+                veh_nodes[veh_num].drop('exp_cost', axis=1, inplace=True)
+                veh_nodes[veh_num].drop('demand', axis=1, inplace=True)
+                veh_links[veh_num].drop('percent', axis=1, inplace=True)
+                veh_links[veh_num].drop('NGEV_flow', axis=1, inplace=True)
+
+            para_time += max(temp_para_time)
+
+        return MS_capacity, para_time, total_time
+
+
+    TNP_price = np.zeros(TNP_constMat[list(TNP_constMat.keys())[0]].shape[0])
+    [MS_capacity, para_time , total_time] = TNP_price_to_MS_capacity(TNP_price)
+
+
+    NGEV_CC_MS(MSU_constMat, MS_capacity, user_nodes, user_links, user_trips)
+
+
+    [TNP_price, para_time, total_time] = NGEV_CC_TNP(TNP_constMat, np.array(list(TS_links['capacity'])), veh_nodes, veh_links, veh_trips)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -934,7 +1208,9 @@ if __name__ == '__main__':
     # NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
 
 
-    NGEV_CC_TNP(TNP_constMat, np.array(list(TS_links['capacity'])), veh_nodes, veh_links, veh_trips)
+    # NGEV_CC_TNP(TNP_constMat, np.array(list(TS_links['capacity'])), veh_nodes, veh_links, veh_trips)
+
+    NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
 
 
 
