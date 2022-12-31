@@ -508,13 +508,16 @@ def NGEV_CC_TNP(TNP_constMat, capacity, veh_nodes, veh_links, veh_trips, fft_nam
     num_TNPconst = TNP_constMat[list(veh_nodes.keys())[0]].shape[0]
     sol_init = np.zeros(num_TNPconst)
 
+    total_flow = sum([sum(list(veh_trips[list(veh_trips.keys())[0]][origin_node].values())) for origin_node in veh_trips[list(veh_trips.keys())[0]].keys()])
+    max_cost = max(list(veh_links[list(veh_links.keys())[0]]['free_flow_time']))
+
     fista = ag.FISTA_PROJ_BACK()
     fista.set_x_init(sol_init)
     fista.set_obj_func(obj_func)
     fista.set_nbl_func(nbl_func)
     fista.set_proj_func(proj_func)
     fista.set_conv_func(conv_func)
-    fista.set_lips_init(0.1)
+    fista.set_lips_init(total_flow/num_TNPconst*max_cost)
     fista.set_back_para(1.1)
     fista.set_conv_judge(0.1)
     fista.set_output_iter(1)
@@ -704,6 +707,9 @@ def NGEV_CC_MS(MSU_constMat, MS_capacity, user_nodes, user_links, user_trips, ff
     # 初期解の設定
     num_MSconst = MSU_constMat[list(user_nodes.keys())[0]].shape[0]
     sol_init = np.zeros(num_MSconst)
+    
+    total_flow = sum([sum(list(user_trips[list(user_trips.keys())[0]][origin_node].values())) for origin_node in user_trips[list(user_trips.keys())[0]].keys()])
+    max_cost = max(list(user_links[list(user_links.keys())[0]]['free_flow_time']))
 
     fista = ag.FISTA_PROJ_BACK()
     fista.set_x_init(sol_init)
@@ -711,7 +717,7 @@ def NGEV_CC_MS(MSU_constMat, MS_capacity, user_nodes, user_links, user_trips, ff
     fista.set_nbl_func(nbl_func)
     fista.set_proj_func(proj_func)
     fista.set_conv_func(conv_func)
-    fista.set_lips_init(0.1)
+    fista.set_lips_init(total_flow/num_MSconst*max_cost)
     fista.set_back_para(1.1)
     fista.set_conv_judge(0.1)
     fista.set_output_iter(1)
@@ -1332,6 +1338,8 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
     num_MSconst = MSV_constMat[list(veh_nodes.keys())[0]].shape[0]
     sol_init = np.zeros(num_TNPconst + num_MSconst)
 
+    total_flow = sum([sum(list(veh_trips[list(veh_trips.keys())[0]][origin_node].values())) for origin_node in veh_trips[list(veh_trips.keys())[0]].keys()])
+    max_cost = max(list(veh_links[list(veh_links.keys())[0]]['free_flow_time']))
 
     fista = ag.FISTA_PROJ_BACK()
     fista.set_x_init(sol_init)
@@ -1339,7 +1347,7 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
     fista.set_nbl_func(nbl_func)
     fista.set_proj_func(proj_func)
     fista.set_conv_func(conv_func)
-    fista.set_lips_init(10.0)
+    fista.set_lips_init(total_flow / num_MSconst * max_cost)
     fista.set_back_para(1.1)
     fista.set_conv_judge(0.1)
     fista.set_output_iter(1)
@@ -1472,9 +1480,14 @@ if __name__ == '__main__':
 
     output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'MSA')
     os.makedirs(output_root, exist_ok=True)
-    NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
+    # NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
 
-
+    num_const = MSV_constMat[0].shape[0]
+    total_flow = sum([sum(list(veh_trips[list(veh_trips.keys())[0]][origin_node].values())) for origin_node in veh_trips[list(veh_trips.keys())[0]].keys()])
+    max_cost = max(list(veh_links[list(veh_links.keys())[0]]['free_flow_time']))
+    print(max_cost)
+    print(total_flow)
+    print(total_flow/num_const * max_cost)
 
 
     # for orig_node in veh_trips[0].keys():
