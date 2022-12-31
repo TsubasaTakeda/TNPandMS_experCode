@@ -94,13 +94,17 @@ def NGEV(nodes, links, node_order, alpha_name = 'alpha', theta_name = 'theta', c
         else:
             sum_per = 0.0
             for index, link in link_set.iterrows():
-                non_index_set = []
+                max_index = []
+                max_cost = 0.0
                 if  - nodes[theta_name][i] * ( link[cost_name] + nodes['exp_cost'][link['init_node']] ) > max_exp_dbl:
-                    non_index_set.append(index)
-                links.loc[index, 'percent'] = link[alpha_name] * math.exp( - nodes[theta_name][i] * ( link[cost_name] + nodes['exp_cost'][link['init_node']] ) ) / math.exp(- nodes[theta_name][i] * nodes['exp_cost'][i])
-                sum_per += links.loc[index, 'percent']
-            for index in non_index_set:
-                links.loc[index, 'percent'] = (1.0 - sum_per)/len(non_index_set)
+                    if max_cost < - nodes[theta_name][i] * (link[cost_name] + nodes['exp_cost'][link['init_node']]):
+                        max_index.append(index)
+                        max_cost = - nodes[theta_name][i] * (link[cost_name] + nodes['exp_cost'][link['init_node']])
+                else:
+                    links.loc[index, 'percent'] = link[alpha_name] * math.exp( - nodes[theta_name][i] * ( link[cost_name] + nodes['exp_cost'][link['init_node']] ) ) / math.exp(- nodes[theta_name][i] * nodes['exp_cost'][i])
+                    sum_per += links.loc[index, 'percent']
+            if len(max_index) > 0:
+                links.loc[max_index[-1], 'percent'] = (1.0 - sum_per)
         for index, link in link_set.iterrows():
             links.loc[index, 'NGEV_flow'] = nodes['NGEV_flow'][i] * links['percent'][index]
 
@@ -1224,7 +1228,7 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
     fista.set_nbl_func(nbl_func)
     fista.set_proj_func(proj_func)
     fista.set_conv_func(conv_func)
-    fista.set_lips_init(0.1)
+    fista.set_lips_init(10.0)
     fista.set_back_para(1.1)
     fista.set_conv_judge(0.1)
     fista.set_output_iter(1)
@@ -1349,15 +1353,17 @@ if __name__ == '__main__':
     for file in user_files:
         MSU_constMat[int(file)] = rsm.read_sparse_mat(user_root + '\\' + file + '\MSU_constMat')
         
-    output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'MSA')
-    os.makedirs(output_root, exist_ok=True)
     
-    # NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
+    output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'FISTA_D')
+    os.makedirs(output_root, exist_ok=True)
+    NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
 
 
+    # output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'MSA')
+    # os.makedirs(output_root, exist_ok=True)
     # NGEV_CC_TNP(TNP_constMat, np.array(list(TS_links['capacity'])), veh_nodes, veh_links, veh_trips)
 
-    NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
+    # NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
 
 
 
