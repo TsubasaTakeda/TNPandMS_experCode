@@ -1037,11 +1037,9 @@ def NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMa
     init_sol = make_init_sol()
     # print(len(init_sol)
 
-    obj_func(init_sol)
-
     veh_msa = msa.MSA()
     veh_msa.set_x_init(init_sol)
-    # veh_msa.set_obj_func(obj_func)
+    veh_msa.set_obj_func(obj_func)
     veh_msa.set_dir_func(dir_func)
     veh_msa.set_conv_judge(0.1)
     veh_msa.set_output_iter(1)
@@ -1480,14 +1478,7 @@ if __name__ == '__main__':
 
     output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'MSA')
     os.makedirs(output_root, exist_ok=True)
-    # NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
-
-    num_const = MSV_constMat[0].shape[0]
-    total_flow = sum([sum(list(veh_trips[list(veh_trips.keys())[0]][origin_node].values())) for origin_node in veh_trips[list(veh_trips.keys())[0]].keys()])
-    max_cost = max(list(veh_links[list(veh_links.keys())[0]]['free_flow_time']))
-    print(max_cost)
-    print(total_flow)
-    print(total_flow/num_const * max_cost)
+    NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
 
 
     # for orig_node in veh_trips[0].keys():

@@ -96,7 +96,7 @@ class MSA:
         total_time = 0.0
         
         now_sol = self.x_init
-        [now_obj, temp_para_time, temp_total_time] = self.obj_func(now_sol)
+        # [now_obj, temp_para_time, temp_total_time] = self.obj_func(now_sol)
 
         if len(now_sol) > 5:
             print('iteration:', iteration, ' now_sol:', now_sol[:5], ' now_obj:', now_obj, ' convergence:', now_conv)
