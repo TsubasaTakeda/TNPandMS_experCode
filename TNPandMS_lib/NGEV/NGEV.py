@@ -857,7 +857,9 @@ def NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMa
 
             for origin_node in veh_trips[veh_num].keys():
 
-                now_flow = np.array([list(veh_sol[start_index:len(veh_links[veh_num])])])
+                now_flow = np.array([list(veh_sol[start_index:start_index + len(veh_links[veh_num])])])
+                # print(MSV_constMat[veh_num].shape)
+                # print(now_flow.shape)
                 MS_capacity += (MSV_constMat[veh_num] @ now_flow.T).T[0]
                 start_index += len(veh_links[veh_num])
 
@@ -918,12 +920,121 @@ def NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMa
 
         dir_vec = temp_sol - now_sol
 
-        return dir_vec, para_time, total_time
+        # return dir_vec, para_time, total_time
+        return dir_vec, 0.0, 0.0
 
-    
+    # 初期解を作成する関数
+    def make_init_sol():
+
+        init_sol = np.array([])
+
+        for veh_num in veh_trips.keys():
+
+            for origin_node in veh_trips[veh_num].keys():
+
+                veh_links[veh_num]['now_flow'] = 0.0
+
+                for dest_node in veh_trips[veh_num][origin_node].keys():
+
+                    # print(origin_node, dest_node, veh_trips[veh_num][origin_node][dest_node])
+                    link_set = veh_links[veh_num][(veh_links[veh_num]['init_node']==origin_node) & (veh_links[veh_num]['term_node']==dest_node)]
+                    for index, link in link_set.iterrows():
+                        veh_links[veh_num].loc[index, 'now_flow'] = veh_trips[veh_num][origin_node][dest_node]
+
+                add_sol = np.array(list(veh_links[veh_num]['now_flow']))
+                init_sol = np.hstack([init_sol, add_sol])
+                veh_links[veh_num].drop('now_flow', axis=1, inplace=True)
+
+        return init_sol
+
+    # 目的関数
+    def obj_func(now_sol):
+
+        para_time = 0.0
+        total_time = 0.0
+        temp_para_time = []
+
+        start_index = 0
+
+        obj = 0.0
+
+        # 車両側の目的関数値を計算
+        for veh_num in veh_trips.keys():
+            for origin_node in veh_trips[veh_num].keys():
+
+                start_time = time.process_time()
+
+                # 起点別リンクフローを設定
+                num_links = len(veh_links[veh_num].index)
+                veh_links[veh_num]['link_flow'] = now_sol[start_index:start_index + num_links]
+                start_index += num_links
+
+                # 起点別ノードフローを計算
+                veh_nodes[veh_num]['node_flow'] = 0.0
+                for node_num in veh_nodes[veh_num].index:
+                    in_flow = sum(list(veh_links[veh_num][veh_links[veh_num]['term_node'] == node_num]['link_flow']))
+                    # out_flow = sum(list(veh_links[veh_num][veh_links[veh_num]['init_node'] == node_num]['link_flow']))
+                    veh_nodes[veh_num].loc[node_num, 'node_flow'] = in_flow
+
+                # 線形項を計算
+                obj += np.array(list(veh_links[veh_num]['link_flow'])) @ np.array(list(veh_links[veh_num]['free_flow_time']))
+                # print(obj)
+
+                # エントロピー項を計算
+                veh_nodes[veh_num]['log_term'] = 0.0
+                for node_num in veh_nodes[veh_num].index:
+                    if veh_nodes[veh_num]['node_flow'][node_num] == 0.0:
+                        continue
+                    link_set = veh_links[veh_num][veh_links[veh_num]['term_node'] == node_num]
+                    # print(link_set)
+                    for index, link in link_set.iterrows():
+                        if link['link_flow'] == 0.0:
+                            continue
+                        # print(link['link_flow'])
+                        # print(veh_nodes[veh_num]['node_flow'][node_num])
+                        # print(link['link_flow'] * math.log(link['link_flow'] / veh_nodes[veh_num]['node_flow'][node_num]))
+                        veh_nodes[veh_num].loc[node_num, 'log_term'] += link['link_flow'] * math.log(link['link_flow'] / veh_nodes[veh_num]['node_flow'][node_num])
+                    
+                    # print(np.array(veh_nodes[veh_num]['log_term']))
+                    # print(1.0/np.array(veh_nodes[veh_num]['theta']))
+
+                    obj += np.array(veh_nodes[veh_num]['log_term']) @ (1.0 / np.array(veh_nodes[veh_num]['theta']))
+                    # print(obj)
+
+                end_time = time.process_time()
+                total_time += end_time - start_time
+                temp_para_time.append(end_time - start_time)
+
+                veh_links[veh_num].drop('link_flow', axis=1, inplace=True)
+                veh_nodes[veh_num].drop('node_flow', axis=1, inplace=True)
+                veh_nodes[veh_num].drop('log_term', axis=1, inplace=True)
+
+        para_time += max(temp_para_time)
+
+        # 利用者側の目的関数値を計算
+        [MS_capacity, temp_para_time, temp_total_time] = veh_sol_to_MS_capacity(now_sol)
+        para_time += temp_para_time 
+        total_time += temp_total_time
+        # print(MS_capacity)
+        MSU_fista = NGEV_CC_MS(MSU_constMat, MS_capacity, user_nodes, user_links, user_trips)
+        obj -= MSU_fista.sol_obj
+        para_time += MSU_fista.para_time
+        total_time += MSU_fista.total_time
+
+        print(obj)
+
+        return obj, para_time, total_time
+
+    # init_MS_price = np.zeros(MSV_constMat[list(veh_trips.keys())[0]].shape[0])
+    # MS_price_to_veh_fft(init_MS_price)
+
+    init_sol = make_init_sol()
+    # print(len(init_sol)
+
+    obj_func(init_sol)
 
     veh_msa = msa.MSA()
-    # veh_msa.set_x_init(sol_init)
+    veh_msa.set_x_init(init_sol)
     # veh_msa.set_obj_func(obj_func)
     veh_msa.set_dir_func(dir_func)
     veh_msa.set_conv_judge(0.1)
@@ -1354,16 +1465,14 @@ if __name__ == '__main__':
         MSU_constMat[int(file)] = rsm.read_sparse_mat(user_root + '\\' + file + '\MSU_constMat')
         
     
-    output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'FISTA_D')
-    os.makedirs(output_root, exist_ok=True)
-    NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
-
-
-    # output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'MSA')
+    # output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'FISTA_D')
     # os.makedirs(output_root, exist_ok=True)
-    # NGEV_CC_TNP(TNP_constMat, np.array(list(TS_links['capacity'])), veh_nodes, veh_links, veh_trips)
+    # NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
 
-    # NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
+
+    output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'MSA')
+    os.makedirs(output_root, exist_ok=True)
+    NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
 
 
 
