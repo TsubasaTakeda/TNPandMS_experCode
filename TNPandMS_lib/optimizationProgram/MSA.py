@@ -117,6 +117,10 @@ class MSA:
             num_call_dir += 1
 
             now_sol = prev_sol + dir_vec/(iteration + 1.0)
+            # print('MSA_iteration: ', iteration)
+            # print('dir_vec[:30]: ', dir_vec[:30])
+            # print('prev_sol[:30]: ', prev_sol[:30])
+            # print('now_sol[:30]: ', now_sol[:30])
             [now_obj, temp_para_time, temp_total_time] = self.obj_func(now_sol)  
             para_time += temp_para_time 
             total_time += temp_total_time
@@ -129,7 +133,7 @@ class MSA:
 
             if iteration % self.output_iter == 0:
                 
-                [now_obj, dammy_para_time, dammy_total_time]  = self.obj_func(now_sol)
+                # [now_obj, dammy_para_time, dammy_total_time]  = self.obj_func(now_sol)
 
                 if len(now_sol) > 5:
                     print('iteration:', iteration, ' now_sol:', now_sol[:5], ' now_obj:', now_obj, ' convergence:', now_conv)
