@@ -74,7 +74,8 @@ if __name__ == '__main__':
 
     # 制約条件の係数行列
     # B = np.array([[1, 1], [1, 2], [-1, 0], [1, 0], [-1, 0], [1, 0]])
-    B = sparse.lil_matrix((6, 2))
+    B = sparse.coo_matrix((6, 2))
+    B = B.tocsr()
     B[0, 0] = 1
     B[0, 1] = 1
     B[1, 0] = 1
@@ -99,3 +100,4 @@ if __name__ == '__main__':
         print(f"最適解は x = {sol}")
         print(f"最適値は {val_opt}")
         print(f"実行時間は {model.Runtime}")
+        # print(type(sol))
