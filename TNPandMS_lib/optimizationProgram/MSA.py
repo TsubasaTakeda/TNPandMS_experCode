@@ -65,7 +65,7 @@ class MSA:
             print("objective function is not set.")
             is_Executed = -1
         if self.dir_func is null:
-            print("nabla function is not set.")
+            print("dir function is not set.")
             is_Executed = -1
         if self.conv_judge is null:
             print("convergence judgement (>0) is not set.")
