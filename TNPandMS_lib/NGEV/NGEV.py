@@ -1927,124 +1927,129 @@ if __name__ == '__main__':
 
     import os
 
-    root = os.path.dirname(os.path.abspath('.'))
-    veh_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_2', 'virtual_net', 'vehicle')
-    veh_files = os.listdir(veh_root)
-    user_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_2', 'virtual_net', 'user')
-    user_files = os.listdir(user_root)
+    net_name = 'Sample'
+    scenarios = ['Scenario_2', 'Scenario_1', 'Scenario_3', 'Scenario_0']
+
+    for scene in scenarios:
+
+        root = os.path.dirname(os.path.abspath('.'))
+        veh_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'virtual_net', 'vehicle')
+        veh_files = os.listdir(veh_root)
+        user_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'virtual_net', 'user')
+        user_files = os.listdir(user_root)
 
 
-    # 時空間ネットワークを読み込む
-    TS_links = rn.read_net(os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_2', 'TS_net', 'Sample_ts_net.tntp'))
-    # print(TS_links)
+        # 時空間ネットワークを読み込む
+        TS_links = rn.read_net(os.path.join(root, '..', '_sampleData', net_name, scene, 'TS_net', 'Sample_ts_net.tntp'))
+        # print(TS_links)
 
 
-    # -----------------車両側の仮想ネットワーク情報を追加-------------------------------------------------------------------
-    veh_links = {}
-    veh_nodes = {}
-    veh_trips = {}
-    for file in veh_files:
-        veh_links[int(file)] = rn.read_net(veh_root + '\\' + file + '\Sample_vir_net.tntp')
-        veh_nodes[int(file)] = rn.read_node(veh_root + '\\' + file + '\Sample_vir_node.tntp')
-        veh_trips[int(file)] = rn.read_trips(veh_root + '\\' + file + '\Sample_vir_trips.tntp')
+        # -----------------車両側の仮想ネットワーク情報を追加-------------------------------------------------------------------
+        veh_links = {}
+        veh_nodes = {}
+        veh_trips = {}
+        for file in veh_files:
+            veh_links[int(file)] = rn.read_net(veh_root + '\\' + file + '\Sample_vir_net.tntp')
+            veh_nodes[int(file)] = rn.read_node(veh_root + '\\' + file + '\Sample_vir_node.tntp')
+            veh_trips[int(file)] = rn.read_trips(veh_root + '\\' + file + '\Sample_vir_trips.tntp')
 
 
-        # nodes の要らない情報を削除
-        keys = veh_nodes[int(file)].columns
-        veh_nodes[int(file)].drop(keys, axis=1, inplace=True)
-        veh_nodes[int(file)]['theta'] = 1.0
+            # nodes の要らない情報を削除
+            keys = veh_nodes[int(file)].columns
+            veh_nodes[int(file)].drop(keys, axis=1, inplace=True)
+            veh_nodes[int(file)]['theta'] = 1.0
 
 
-        # links の要らない情報を削除
-        keys = veh_links[int(file)].columns
-        for key in keys:
-            if key == 'init_node' or key == 'term_node' or key == 'free_flow_time':
-                continue
-            else:
-                veh_links[int(file)].drop(key, axis=1, inplace=True)
-        veh_links[int(file)]['alpha'] = 1.0
+            # links の要らない情報を削除
+            keys = veh_links[int(file)].columns
+            for key in keys:
+                if key == 'init_node' or key == 'term_node' or key == 'free_flow_time':
+                    continue
+                else:
+                    veh_links[int(file)].drop(key, axis=1, inplace=True)
+            veh_links[int(file)]['alpha'] = 1.0
 
-    # print(veh_links)
-    # print(veh_nodes)
-    # print(veh_trips)
-
-
-    
-    # -----------------利用者側の仮想ネットワーク情報を追加-------------------------------------------------------------------
-    user_links = {}
-    user_nodes = {}
-    user_trips = {}
-    for file in user_files:
-        user_links[int(file)] = rn.read_net(user_root + '\\' + file + '\Sample_vir_net.tntp')
-        user_nodes[int(file)] = rn.read_node(user_root + '\\' + file + '\Sample_vir_node.tntp')
-        user_trips[int(file)] = rn.read_trips(user_root + '\\' + file + '\Sample_vir_trips.tntp')
-
-        # nodes の要らない情報を削除
-        keys = user_nodes[int(file)].columns
-        user_nodes[int(file)].drop(keys, axis=1, inplace=True)
-        user_nodes[int(file)]['theta'] = 1.0
-
-        # links の要らない情報を削除
-        keys = user_links[int(file)].columns
-        for key in keys:
-            if key == 'init_node' or key == 'term_node' or key == 'free_flow_time':
-                continue
-            else:
-                user_links[int(file)].drop(key, axis=1, inplace=True)
-        user_links[int(file)]['alpha'] = 1.0
-
-    # print(veh_links)
-    # print(veh_nodes)
-    # print(veh_trips)
+        # print(veh_links)
+        # print(veh_nodes)
+        # print(veh_trips)
 
 
-    
-    
-    
-    
-    
-    # -----------------制約条件の係数行列を取得-------------------------------------------------------------------
-
-    veh_root = os.path.join(root, '..', '_sampleData','Sample', 'Scenario_2', 'constMat', 'vehicle')
-    veh_files = os.listdir(veh_root)
-    user_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_2', 'constMat', 'user')
-    user_files = os.listdir(user_root)
-
-    # 車両側の行列を取得
-    TNP_constMat = {}
-    MSV_constMat = {}
-    V_incMat = {}
-    for file in veh_files:
-        TNP_constMat[int(file)] = rsm.read_sparse_mat(veh_root + '\\' + file + '\TNP_constMat')
-        MSV_constMat[int(file)] = rsm.read_sparse_mat(veh_root + '\\' + file + '\MSV_constMat')
-        V_incMat[int(file)] = rsm.read_sparse_mat(veh_root + '\\' + file + '\incidenceMat')
-
-    # 利用者側の行列を取得
-    MSU_constMat = {}
-    U_incMat = {}
-    for file in user_files:
-        MSU_constMat[int(file)] = rsm.read_sparse_mat(user_root + '\\' + file + '\MSU_constMat')
-        U_incMat[int(file)] = rsm.read_sparse_mat(user_root + '\\' + file + '\incidenceMat')
         
-    
-    # output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'FISTA_D')
-    # os.makedirs(output_root, exist_ok=True)
-    # NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
+        # -----------------利用者側の仮想ネットワーク情報を追加-------------------------------------------------------------------
+        user_links = {}
+        user_nodes = {}
+        user_trips = {}
+        for file in user_files:
+            user_links[int(file)] = rn.read_net(user_root + '\\' + file + '\Sample_vir_net.tntp')
+            user_nodes[int(file)] = rn.read_node(user_root + '\\' + file + '\Sample_vir_node.tntp')
+            user_trips[int(file)] = rn.read_trips(user_root + '\\' + file + '\Sample_vir_trips.tntp')
 
-    # TNP_sol = np.zeros(len(TS_links))
-    # capacity = np.array(TS_links['capacity'])
-    # NGEV_CC_TNP(TNP_constMat, capacity, veh_nodes, veh_links, veh_trips, fft_name = 'free_flow_time')
+            # nodes の要らない情報を削除
+            keys = user_nodes[int(file)].columns
+            user_nodes[int(file)].drop(keys, axis=1, inplace=True)
+            user_nodes[int(file)]['theta'] = 1.0
+
+            # links の要らない情報を削除
+            keys = user_links[int(file)].columns
+            for key in keys:
+                if key == 'init_node' or key == 'term_node' or key == 'free_flow_time':
+                    continue
+                else:
+                    user_links[int(file)].drop(key, axis=1, inplace=True)
+            user_links[int(file)]['alpha'] = 1.0
+
+        # print(veh_links)
+        # print(veh_nodes)
+        # print(veh_trips)
 
 
-    # output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'MSA')
-    # os.makedirs(output_root, exist_ok=True)
-    # NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
+        
+        
+        
+        
+        
+        # -----------------制約条件の係数行列を取得-------------------------------------------------------------------
+
+        veh_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'constMat', 'vehicle')
+        veh_files = os.listdir(veh_root)
+        user_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'constMat', 'user')
+        user_files = os.listdir(user_root)
+
+        # 車両側の行列を取得
+        TNP_constMat = {}
+        MSV_constMat = {}
+        V_incMat = {}
+        for file in veh_files:
+            TNP_constMat[int(file)] = rsm.read_sparse_mat(veh_root + '\\' + file + '\TNP_constMat')
+            MSV_constMat[int(file)] = rsm.read_sparse_mat(veh_root + '\\' + file + '\MSV_constMat')
+            V_incMat[int(file)] = rsm.read_sparse_mat(veh_root + '\\' + file + '\incidenceMat')
+
+        # 利用者側の行列を取得
+        MSU_constMat = {}
+        U_incMat = {}
+        for file in user_files:
+            MSU_constMat[int(file)] = rsm.read_sparse_mat(user_root + '\\' + file + '\MSU_constMat')
+            U_incMat[int(file)] = rsm.read_sparse_mat(user_root + '\\' + file + '\incidenceMat')
+            
+        
+        # output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'FISTA_D')
+        # os.makedirs(output_root, exist_ok=True)
+        # NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
+
+        # TNP_sol = np.zeros(len(TS_links))
+        # capacity = np.array(TS_links['capacity'])
+        # NGEV_CC_TNP(TNP_constMat, capacity, veh_nodes, veh_links, veh_trips, fft_name = 'free_flow_time')
+
+
+        # output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'MSA')
+        # os.makedirs(output_root, exist_ok=True)
+        # NGEV_TNPandMS_MSA(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
 
 
 
-    output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_2', 'result', 'MSA')
-    os.makedirs(output_root, exist_ok=True)
-    NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
+        output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'Frank-wolf')
+        os.makedirs(output_root, exist_ok=True)
+        NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
 
 
     # for orig_node in veh_trips[0].keys():
