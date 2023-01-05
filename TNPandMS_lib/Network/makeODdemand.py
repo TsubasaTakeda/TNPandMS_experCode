@@ -55,6 +55,28 @@ def trips_float_to_int(trips, total_flow):
     return trips_int
 
 
+# 乱数で整数OD需要を作成する関数
+def make_int_trips_random(num_zones, total_flow):
+
+    rand = {}
+    sum_rand = 0.0
+    for origin_node in range(1, num_zones+1):
+        rand[origin_node] = {}
+        for destination_node in range(num_zones+1, num_zones*2+1):
+            rand[origin_node][destination_node] = random.uniform(0.0, 1.0)
+            sum_rand += rand[origin_node][destination_node]
+
+    trips = {}
+    for origin_node in range(1, num_zones+1):
+        trips[origin_node] = {}
+        for destination_node in range(num_zones+1, num_zones*2+1):
+            trips[origin_node][destination_node] = total_flow * rand[origin_node][destination_node]/sum_rand
+
+    trips = trips_float_to_int(trips, total_flow)
+
+    return trips
+
+
 if __name__ == "__main__":
 
     import os
