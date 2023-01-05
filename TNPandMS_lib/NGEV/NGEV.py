@@ -1355,7 +1355,7 @@ def NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_c
         # 非負制約を追加
         row = np.hstack([row, np.array(list(range(num_var))) + start_nzero_index])
         col = np.hstack([col, np.array(list(range(num_var)))])
-        data = np.hstack([data, np.ones(num_var)])
+        data = np.hstack([data, -np.ones(num_var)])
 
         # # print(len(row))
         # # print(len(col))
@@ -1399,15 +1399,17 @@ def NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_c
         total_time = 0.0
 
         [now_nbl, temp_para_time, temp_total_time] = nbl_func(now_sol)
+        para_time += temp_para_time
+        total_time += temp_total_time
 
         [B_eq, temp_para_time, temp_total_time] = make_B_eq()
         [B, temp_para_time, temp_total_time] = make_B()
         [b_eq, temp_para_time, temp_total_time] = make_b_eq()
         [b, temp_para_time, temp_total_time] = make_b()
 
-        [model, temp_sol] = lp.linprog(now_nbl, B, b, B_eq, b_eq)
-        para_time += model.Runtime
-        total_time += model.Runtime
+        [model, temp_sol, temp_time] = lp.linprog(now_nbl, B, b, B_eq, b_eq)
+        para_time += temp_time
+        total_time += temp_time
 
         dir_vec = temp_sol - now_sol
 
@@ -2047,7 +2049,7 @@ if __name__ == '__main__':
 
 
 
-        output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'Frank-wolf')
+        output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'Frank-wolf_MSA_1')
         os.makedirs(output_root, exist_ok=True)
         NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
 

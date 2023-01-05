@@ -1,5 +1,6 @@
 import gurobipy as gp
 import numpy as np
+import time
 from sqlalchemy import null
 
 
@@ -31,6 +32,7 @@ def linprog(c, B, b, B_eq = null, b_eq = null):
             print('b_eq.shpae: ', b_eq.shape)
             return -1
 
+    start_time = time.process_time()
 
     # モデルの宣言
     model = gp.Model(name="Sample")
@@ -54,6 +56,8 @@ def linprog(c, B, b, B_eq = null, b_eq = null):
 
     model.optimize()
 
+    end_time = time.process_time()
+
     print("-" * 40)
     print()
 
@@ -62,7 +66,7 @@ def linprog(c, B, b, B_eq = null, b_eq = null):
     if model.Status == gp.GRB.OPTIMAL:
         sol = np.array([x[i].X for i in x.keys()])
 
-    return model, sol
+    return model, sol, end_time - start_time
 
 
 if __name__ == '__main__':

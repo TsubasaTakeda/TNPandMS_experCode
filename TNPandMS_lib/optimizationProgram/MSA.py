@@ -116,7 +116,7 @@ class MSA:
             total_time += temp_total_time
             num_call_dir += 1
 
-            now_sol = prev_sol + dir_vec/(iteration + 1.0)
+            now_sol = prev_sol + dir_vec/(iteration)
             # print('MSA_iteration: ', iteration)
             # print('dir_vec[:30]: ', dir_vec[:30])
             # print('prev_sol[:30]: ', prev_sol[:30])
