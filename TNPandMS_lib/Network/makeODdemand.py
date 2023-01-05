@@ -36,7 +36,23 @@ def make_trips_random(num_zones, total_flow):
 
     return trips
 
+def trips_float_to_int(trips, total_flow):
 
+    trips_int = {}
+
+    sum_flow = 0.0
+
+    for origin_node in trips.keys():
+        trips_int[origin_node] = {}
+        for dest_node in trips[origin_node].keys():
+            trips_int[origin_node][dest_node] = float(round(trips[origin_node][dest_node]))
+            sum_flow += float(round(trips[origin_node][dest_node]))
+
+    origin_node = list(trips_int.keys())[0]
+    dest_node = list(trips_int[list(trips_int.keys())[0]].keys())[0]
+    trips_int[origin_node][dest_node] += total_flow - sum_flow
+
+    return trips_int
 
 
 if __name__ == "__main__":
@@ -67,8 +83,10 @@ if __name__ == "__main__":
 
         vehicle_trips  = make_trips_random(num_zones, vtflow_data[vehicle_num])
         # print(vehicle_trips)
-        os.makedirs(os.path.join(root, 'Scenario_0', 'virtual_net', 'vehicle', str(vehicle_num)), exist_ok=True)
-        rn.write_trips(os.path.join(root, 'Scenario_0', 'virtual_net', 'vehicle', str(vehicle_num), 'Sample_vir_trips.tntp'), vehicle_trips, num_zones*2, vtflow_data[vehicle_num])
+        # os.makedirs(os.path.join(root, 'Scenario_0', 'virtual_net', 'vehicle', str(vehicle_num)), exist_ok=True)
+        # rn.write_trips(os.path.join(root, 'Scenario_0', 'virtual_net', 'vehicle', str(vehicle_num), 'Sample_vir_trips.tntp'), vehicle_trips, num_zones*2, vtflow_data[vehicle_num])
+        vehicle_trips = trips_float_to_int(vehicle_trips, vtflow_data[vehicle_num])
+        print(vehicle_trips)
 
     for user_num in utflow_data.keys():
         user_trips = make_trips_multiple(original_trips, num_zones, original_total_flow, utflow_data[user_num])
@@ -76,7 +94,7 @@ if __name__ == "__main__":
 
         user_trips = make_trips_random(num_zones, utflow_data[user_num])
         # print(user_trips)
-        os.makedirs(os.path.join(root, 'Scenario_0', 'virtual_net', 'user', str(user_num)), exist_ok=True)
-        rn.write_trips(os.path.join(root, 'Scenario_0', 'virtual_net', 'user', str(user_num), 'Sample_vir_trips.tntp'), user_trips, num_zones*2, utflow_data[vehicle_num])
-
-
+        # os.makedirs(os.path.join(root, 'Scenario_0', 'virtual_net', 'user', str(user_num)), exist_ok=True)
+        # rn.write_trips(os.path.join(root, 'Scenario_0', 'virtual_net', 'user', str(user_num), 'Sample_vir_trips.tntp'), user_trips, num_zones*2, utflow_data[vehicle_num])
+        user_trips = trips_float_to_int(user_trips, utflow_data[user_num])
+        print(user_trips)
