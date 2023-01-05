@@ -1,0 +1,21 @@
+<NUMBER OF ZONES> 9
+<NUMBER OF NODES> 9
+<FIRST THRU NODE> 1
+<NUMBER OF LINKS> 12
+<ORIGINAL HEADER> 
+<END OF METADATA>
+
+
+~	init_node	term_node	capacity	free_flow_time	;
+	1	2	1774.0	5.0	;
+	1	4	4859.0	5.0	;
+	2	3	1930.0	5.0	;
+	2	5	2782.0	5.0	;
+	3	6	4657.0	5.0	;
+	4	5	4031.0	5.0	;
+	4	7	4112.0	5.0	;
+	5	6	1110.0	5.0	;
+	5	8	3490.0	5.0	;
+	6	9	2542.0	5.0	;
+	7	8	4946.0	5.0	;
+	8	9	1445.0	5.0	;
