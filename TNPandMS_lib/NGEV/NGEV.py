@@ -1631,7 +1631,6 @@ def NGEV_TNPandMS_FW(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat
 
         nbl = np.array([])
         
-
         # 車両側の勾配を計算
         for veh_num in veh_trips.keys():
             for origin_node in veh_trips[veh_num].keys():
@@ -2084,10 +2083,10 @@ def NGEV_TNPandMS_FW(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat
     # [init_obj, temp_para_time, temp_total_time] = obj_func(init_sol)
     # print(init_obj)
 
-    # [B_eq, temp_para_time, temp_total_time] = make_B_eq()
-    # [B, temp_para_time, temp_total_time] = make_B()
-    # [b_eq, temp_para_time, temp_total_time] = make_b_eq()
-    # [b, temp_para_time, temp_total_time] = make_b()
+    [B_eq, temp_para_time, temp_total_time] = make_B_eq()
+    [B, temp_para_time, temp_total_time] = make_B()
+    [b_eq, temp_para_time, temp_total_time] = make_b_eq()
+    [b, temp_para_time, temp_total_time] = make_b()
     # print(B_eq.shape)
     # print(b_eq.shape)
     # print(B.shape)
@@ -2095,29 +2094,32 @@ def NGEV_TNPandMS_FW(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat
 
     # lp.linprog(init_nbl, B, b, B_eq, b_eq)
 
-    veh_msa = msa.MSA()
-    veh_msa.set_x_init(init_sol)
-    veh_msa.set_obj_func(obj_func)
-    veh_msa.set_dir_func(dir_func)
-    veh_msa.set_conv_judge(0.1)
-    veh_msa.set_output_iter(1)
-    veh_msa.set_output_root(output_root)
-    veh_msa.exect_MSA()
+    fw = msa.FrankWolf()
+    fw.set_x_init(init_sol)
+    fw.set_obj_func(obj_func)
+    fw.set_nbl_func(nbl_func)
+    fw.set_B(B)
+    fw.set_b(b)
+    fw.set_B_eq(B_eq)
+    fw.set_b_eq(b_eq)
+    fw.set_conv_judge(0.1)
+    fw.set_output_iter(1)
+    fw.exect_FW()
 
 
     # print('\n\n')
 
     # print('sol: ', fista.sol)
-    print('sol_obj: ', veh_msa.sol_obj)
-    print('iteration: ', veh_msa.iter)
-    print('pararel_time: ', veh_msa.para_time)
-    print('total_time: ', veh_msa.total_time)
-    print('num_call_obj: ', veh_msa.num_call_obj)
-    print('num_call_dir: ', veh_msa.num_call_dir)
+    print('sol_obj: ', fw.sol_obj)
+    print('iteration: ', fw.iter)
+    print('pararel_time: ', fw.para_time)
+    print('total_time: ', fw.total_time)
+    print('num_call_obj: ', fw.num_call_obj)
+    print('num_call_nbl: ', fw.num_call_nbl)
     # print('output_data: ')
     # print(fista.output_data)
 
-    return veh_msa
+    return fw
 
 
 
@@ -2552,9 +2554,16 @@ if __name__ == '__main__':
 
 
 
-        output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'Frank-wolf_MSA_1')
+        # output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'Frank-wolf_MSA_1')
+        # os.makedirs(output_root, exist_ok=True)
+        # NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
+
+
+
+        output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'FW')
         os.makedirs(output_root, exist_ok=True)
         NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
+
 
 
     # for orig_node in veh_trips[0].keys():
