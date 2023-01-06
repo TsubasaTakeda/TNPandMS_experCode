@@ -22,86 +22,113 @@
 
 #     return forward
 
+def make_node_upstream_order(nodes):
 
-# upstream orderを計算するメソッド(上流向きノード順)
-def make_node_upstream_order(nodes, links):
-
-    # ノードをインデックス順にソート
-    nodes.sort_index()
-
-    # 結果格納リスト
     upstream_order = []
+    upstream_order += list(nodes[nodes['time'] == -2].index)
 
-    # あるノードが探索済みかを示す辞書(0: 未探索，1: 探索済み)
-    judged = dict(zip(nodes.index, [False for i in range(len(nodes))]))
+    for time in range(max(list(nodes['time'])), -2, -1):
 
-    # 未探索のノードリスト
-    non_search_index = list(nodes.index)
-    # print(non_search_index)
-
-    while len(non_search_index) > 0:
-        remove_nodes = []
-        for i in non_search_index:
-
-            link_set = links[links['init_node'] == i]
-            # print(links)
-
-            ok = True
-            for j in link_set.index:
-                if judged[link_set['term_node'][j]] == False:
-                    ok = False
-
-            if ok:
-                judged[i] = True
-                upstream_order.append(i)
-                remove_nodes.append(i)
-
-        for i in remove_nodes:
-            non_search_index.remove(i)
-
-    # print(upstream_order)
+        upstream_order += list(nodes[nodes['time'] == time].index)
 
     return upstream_order
 
+def make_node_downstream_order(nodes, origin_node):
 
-# downstream orderを計算するメソッド
-def make_node_downstream_order(nodes, links, origin_node):
+    downstream_order = []
+    # print(nodes)
+    downstream_order += list(nodes[nodes['time'] == -1].index)
+    downstream_order.remove(origin_node)
+    downstream_order = [origin_node] + downstream_order
 
-    # ノードをインデックス順にソート
-    nodes.sort_index(inplace=True)
+    for time in range(max(list(nodes['time']))+1):
+        
+        downstream_order += list(nodes[nodes['time'] == time].index)
 
-    # 結果格納リスト
-    downstream_order = [origin_node]
-
-    # あるノードが探索済みかを示す辞書(0: 未探索，1: 探索済み)
-    judged = dict(zip(nodes.index, [False for i in range(len(nodes))]))
-    judged[origin_node] = True
-
-    # 未探索のノードリスト
-    non_search_index = list(nodes.index)
-    non_search_index.remove(origin_node)
-    # print(non_search_index)
-
-    while len(non_search_index) > 0:
-        remove_nodes = []
-        for i in non_search_index:
-
-            link_set = links[links['term_node'] == i]
-
-            ok = True
-            for j in link_set.index:
-                if judged[link_set['init_node'][j]] == False:
-                    ok = False
-
-            if ok:
-                judged[i] = True
-                downstream_order.append(i)
-                remove_nodes.append(i)
-
-        for i in remove_nodes:
-            non_search_index.remove(i)
-
-
-    # print(downstream_order)
+    downstream_order += list(nodes[nodes['time'] == -2].index)
 
     return downstream_order
+
+
+# # upstream orderを計算するメソッド(上流向きノード順)
+# def make_node_upstream_order(nodes, links):
+
+#     # ノードをインデックス順にソート
+#     nodes.sort_index()
+
+#     # 結果格納リスト
+#     upstream_order = []
+
+#     # あるノードが探索済みかを示す辞書(0: 未探索，1: 探索済み)
+#     judged = dict(zip(nodes.index, [False for i in range(len(nodes))]))
+
+#     # 未探索のノードリスト
+#     non_search_index = list(nodes.index)
+#     # print(non_search_index)
+
+#     while len(non_search_index) > 0:
+#         remove_nodes = []
+#         for i in non_search_index:
+
+#             link_set = links[links['init_node'] == i]
+#             # print(links)
+
+#             ok = True
+#             for j in link_set.index:
+#                 if judged[link_set['term_node'][j]] == False:
+#                     ok = False
+
+#             if ok:
+#                 judged[i] = True
+#                 upstream_order.append(i)
+#                 remove_nodes.append(i)
+
+#         for i in remove_nodes:
+#             non_search_index.remove(i)
+
+#     # print(upstream_order)
+
+#     return upstream_order
+
+
+# # downstream orderを計算するメソッド
+# def make_node_downstream_order(nodes, links, origin_node):
+
+#     # ノードをインデックス順にソート
+#     nodes.sort_index(inplace=True)
+
+#     # 結果格納リスト
+#     downstream_order = [origin_node]
+
+#     # あるノードが探索済みかを示す辞書(0: 未探索，1: 探索済み)
+#     judged = dict(zip(nodes.index, [False for i in range(len(nodes))]))
+#     judged[origin_node] = True
+
+#     # 未探索のノードリスト
+#     non_search_index = list(nodes.index)
+#     non_search_index.remove(origin_node)
+#     # print(non_search_index)
+
+#     while len(non_search_index) > 0:
+#         remove_nodes = []
+#         for i in non_search_index:
+
+#             link_set = links[links['term_node'] == i]
+
+#             ok = True
+#             for j in link_set.index:
+#                 if judged[link_set['init_node'][j]] == False:
+#                     ok = False
+
+#             if ok:
+#                 judged[i] = True
+#                 downstream_order.append(i)
+#                 remove_nodes.append(i)
+
+#         for i in remove_nodes:
+#             non_search_index.remove(i)
+
+
+#     # print(downstream_order)
+
+#     return downstream_order

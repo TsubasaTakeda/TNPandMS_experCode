@@ -28,7 +28,7 @@ def NGEV(nodes, links, node_order, alpha_name = 'alpha', theta_name = 'theta', c
     max_dbl = sys.float_info.max
     max_exp_dbl = math.log(sys.float_info.max)
     nodes['exp_cost'] = max_dbl
-    nodes['exp_cost'][node_order[0][0]] = 0.0
+    nodes.loc[node_order[0][0], 'exp_cost'] = 0.0
     nodes['NGEV_flow'] = 0.0
     links['percent'] = 0.0
     links['NGEV_flow'] = 0.0
@@ -1664,8 +1664,10 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
             for origin_node in veh_trips[veh_num].keys():
 
                 # ノード順序を作成
-                down_order = GEVsub.make_node_downstream_order(veh_nodes[veh_num], veh_links[veh_num], origin_node)
-                up_order = GEVsub.make_node_upstream_order(veh_nodes[veh_num], veh_links[veh_num])
+                # down_order = GEVsub.make_node_downstream_order(veh_nodes[veh_num], veh_links[veh_num], origin_node)
+                # up_order = GEVsub.make_node_upstream_order(veh_nodes[veh_num], veh_links[veh_num])
+                down_order = GEVsub.make_node_downstream_order(veh_nodes[veh_num], origin_node)
+                up_order = GEVsub.make_node_upstream_order(veh_nodes[veh_num])
 
                 # OD需要を設定
                 veh_nodes[veh_num]['demand'] = 0.0
@@ -1711,8 +1713,10 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
             for origin_node in user_trips[user_num].keys():
                 
                 # ノード順序を作成
-                down_order = GEVsub.make_node_downstream_order(user_nodes[user_num], user_links[user_num], origin_node)
-                up_order = GEVsub.make_node_upstream_order(user_nodes[user_num], user_links[user_num])
+                # down_order = GEVsub.make_node_downstream_order(user_nodes[user_num], user_links[user_num], origin_node)
+                # up_order = GEVsub.make_node_upstream_order(user_nodes[user_num], user_links[user_num])
+                down_order = GEVsub.make_node_downstream_order(user_nodes[user_num], origin_node)
+                up_order = GEVsub.make_node_upstream_order(user_nodes[user_num])
 
                 # OD需要を設定
                 user_nodes[user_num]['demand'] = 0.0
@@ -1779,8 +1783,10 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
             for origin_node in veh_trips[veh_num].keys():
 
                 # ノード順序を作成
-                down_order = GEVsub.make_node_downstream_order(veh_nodes[veh_num], veh_links[veh_num], origin_node)
-                up_order = GEVsub.make_node_upstream_order(veh_nodes[veh_num], veh_links[veh_num])
+                # down_order = GEVsub.make_node_downstream_order(veh_nodes[veh_num], veh_links[veh_num], origin_node)
+                # up_order = GEVsub.make_node_upstream_order(veh_nodes[veh_num], veh_links[veh_num])
+                down_order = GEVsub.make_node_downstream_order(veh_nodes[veh_num], origin_node)
+                up_order = GEVsub.make_node_upstream_order(veh_nodes[veh_num])
 
                 # OD需要を設定
                 veh_nodes[veh_num]['demand'] = 0.0
@@ -1821,8 +1827,10 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
             for origin_node in user_trips[user_num].keys():
 
                 # ノード順序を作成
-                down_order = GEVsub.make_node_downstream_order(user_nodes[user_num], user_links[user_num], origin_node)
-                up_order = GEVsub.make_node_upstream_order(user_nodes[user_num], user_links[user_num])
+                # down_order = GEVsub.make_node_downstream_order(user_nodes[user_num], user_links[user_num], origin_node)
+                # up_order = GEVsub.make_node_upstream_order(user_nodes[user_num], user_links[user_num])
+                down_order = GEVsub.make_node_downstream_order(user_nodes[user_num], origin_node)
+                up_order = GEVsub.make_node_upstream_order(user_nodes[user_num])
 
                 # OD需要を設定
                 user_nodes[user_num]['demand'] = 0.0
@@ -1956,7 +1964,11 @@ if __name__ == '__main__':
 
             # nodes の要らない情報を削除
             keys = veh_nodes[int(file)].columns
-            veh_nodes[int(file)].drop(keys, axis=1, inplace=True)
+            for key in keys:
+                if key == 'time':
+                    continue
+                else:
+                    veh_nodes[int(file)].drop(key, axis=1, inplace=True)
             veh_nodes[int(file)]['theta'] = 1.0
 
 
@@ -1986,7 +1998,12 @@ if __name__ == '__main__':
 
             # nodes の要らない情報を削除
             keys = user_nodes[int(file)].columns
-            user_nodes[int(file)].drop(keys, axis=1, inplace=True)
+            for key in keys:
+                if key == 'time':
+                    continue
+                else:
+                    user_nodes[int(file)].drop(key, axis=1, inplace=True)
+            # user_nodes[int(file)].drop(keys, axis=1, inplace=True)
             user_nodes[int(file)]['theta'] = 1.0
 
             # links の要らない情報を削除
@@ -2032,9 +2049,9 @@ if __name__ == '__main__':
             U_incMat[int(file)] = rsm.read_sparse_mat(user_root + '\\' + file + '\incidenceMat')
             
         
-        # output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_0', 'result', 'FISTA_D')
-        # os.makedirs(output_root, exist_ok=True)
-        # NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
+        output_root = os.path.join(root, '..', '_sampleData', 'Sample', 'Scenario_2', 'result', 'FISTA_D_kai')
+        os.makedirs(output_root, exist_ok=True)
+        NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, user_nodes, user_links, user_trips, MSU_constMat, TS_links, output_root)
 
         # TNP_sol = np.zeros(len(TS_links))
         # capacity = np.array(TS_links['capacity'])
@@ -2047,9 +2064,9 @@ if __name__ == '__main__':
 
 
 
-        output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'Frank-wolf')
-        os.makedirs(output_root, exist_ok=True)
-        NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
+        # output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'Frank-wolf')
+        # os.makedirs(output_root, exist_ok=True)
+        # NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
 
 
     # for orig_node in veh_trips[0].keys():
