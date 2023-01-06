@@ -2104,6 +2104,7 @@ def NGEV_TNPandMS_FW(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat
     fw.set_b_eq(b_eq)
     fw.set_conv_judge(0.1)
     fw.set_output_iter(1)
+    fw.set_output_root(output_root)
     fw.exect_FW()
 
 
@@ -2562,7 +2563,7 @@ if __name__ == '__main__':
 
         output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'FW')
         os.makedirs(output_root, exist_ok=True)
-        NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
+        NGEV_TNPandMS_FW(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
 
 
 

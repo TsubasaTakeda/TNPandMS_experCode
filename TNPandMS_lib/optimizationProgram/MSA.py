@@ -267,6 +267,8 @@ class FrankWolf:
 
         a = 0.0
         b = 1.0
+        [Fa, temp_para_time, temp_total_time] = self.step_func(now_sol, dir_vec, a)
+        [Fb, temp_para_time, temp_total_time] = self.step_func(now_sol, dir_vec, b)
 
         para_time = 0.0
         total_time = 0.0
@@ -285,17 +287,19 @@ class FrankWolf:
         num_call_obj += 1
 
         while 1:
-            if Fp <= Fq:
+            if Fp >= Fq:
                 b = q
+                Fb = Fq
                 q = p
                 Fq = Fp
-                p = b-gamma*(b-a)
+                p = b - gamma*(b-a)
                 [Fp, temp_para_time, temp_total_time] = self.step_func(now_sol, dir_vec, p)
                 para_time += temp_para_time
                 total_time += temp_total_time
                 num_call_obj += 1
             else:
                 a = p
+                Fa = Fp
                 p = q
                 Fp = Fq
                 q = a + gamma*(b-a)
@@ -304,8 +308,10 @@ class FrankWolf:
                 total_time += temp_total_time
                 num_call_obj += 1
             conv = Fp - Fq
+            print('a: ', a, 'b: ', b, 'Fa: ', Fa, 'Fb: ', Fb)
             if (conv < self.conv_judge) and (conv > -self.conv_judge):
                 break
+            
         alpha = (a+b)/2.0
 
         return alpha, para_time, total_time, num_call_obj
@@ -343,7 +349,7 @@ class FrankWolf:
         print('start Frank-Wolf!')
 
         # 初期状態の諸々を計算
-        print(self.x_init)
+        # print(self.x_init)
         [now_obj, temp_para_time, temp_total_time] = self.obj_func(self.x_init)
         now_conv = sys.float_info.max
 
@@ -390,6 +396,8 @@ class FrankWolf:
             para_time += temp_para_time
             total_time += temp_total_time
             num_call_obj += temp_num_call_obj
+
+            # alpha = 1.0 / iteration
 
             now_sol = prev_sol + alpha*dir_vec
             # print('MSA_iteration: ', iteration)
