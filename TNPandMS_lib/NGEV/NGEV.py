@@ -1355,7 +1355,7 @@ def NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_c
         # 非負制約を追加
         row = np.hstack([row, np.array(list(range(num_var))) + start_nzero_index])
         col = np.hstack([col, np.array(list(range(num_var)))])
-        data = np.hstack([data, np.ones(num_var)])
+        data = np.hstack([data, -np.ones(num_var)])
 
         # # print(len(row))
         # # print(len(col))
@@ -1399,15 +1399,17 @@ def NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_c
         total_time = 0.0
 
         [now_nbl, temp_para_time, temp_total_time] = nbl_func(now_sol)
+        para_time += temp_para_time
+        total_time += temp_total_time
 
         [B_eq, temp_para_time, temp_total_time] = make_B_eq()
         [B, temp_para_time, temp_total_time] = make_B()
         [b_eq, temp_para_time, temp_total_time] = make_b_eq()
         [b, temp_para_time, temp_total_time] = make_b()
 
-        [model, temp_sol] = lp.linprog(now_nbl, B, b, B_eq, b_eq)
-        para_time += model.Runtime
-        total_time += model.Runtime
+        [model, temp_sol, temp_time] = lp.linprog(now_nbl, B, b, B_eq, b_eq)
+        para_time += temp_time
+        total_time += temp_time
 
         dir_vec = temp_sol - now_sol
 
@@ -1613,6 +1615,512 @@ def NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_c
     # print(fista.output_data)
 
     return veh_msa
+
+
+# 一次元探索もやるFrank-Wolf
+def NGEV_TNPandMS_FW(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, veh_incMat, user_nodes, user_links, user_trips, MSU_constMat, user_incMat, TS_links, output_root):
+
+    # 勾配関数
+    def nbl_func(now_sol):
+
+        para_time = 0.0
+        total_time = 0.0
+        temp_para_time = []
+
+        start_index = 0
+
+        nbl = np.array([])
+        
+        # 車両側の勾配を計算
+        for veh_num in veh_trips.keys():
+            for origin_node in veh_trips[veh_num].keys():
+
+                start_time = time.process_time()
+
+                temp_nbl = np.array(list(veh_links[veh_num]['free_flow_time']))
+
+                # 起点別リンクフローを設定
+                num_links = len(veh_links[veh_num].index)
+                veh_links[veh_num]['link_flow'] = now_sol[start_index:start_index + num_links]
+                start_index += num_links
+
+                # 起点別ノードフローを計算
+                veh_nodes[veh_num]['node_flow'] = 0.0
+                for node_num in veh_nodes[veh_num].index:
+                    in_flow = sum(list(veh_links[veh_num][veh_links[veh_num]['term_node'] == node_num]['link_flow']))
+                    # out_flow = sum(list(veh_links[veh_num][veh_links[veh_num]['init_node'] == node_num]['link_flow']))
+                    veh_nodes[veh_num].loc[node_num, 'node_flow'] = in_flow
+
+                # エントロピー項を計算
+                veh_links[veh_num]['log_term'] = 0.0
+                for node_num in veh_nodes[veh_num].index:
+                    if veh_nodes[veh_num]['node_flow'][node_num] == 0.0:
+                        continue
+                    link_set = veh_links[veh_num][veh_links[veh_num]['term_node'] == node_num]
+                    for index, link in link_set.iterrows():
+                        if link['link_flow'] == 0.0:
+                            continue
+                        veh_links[veh_num].loc[index, 'log_term'] += math.log(link['link_flow'] / (veh_nodes[veh_num]['node_flow'][node_num] * link['alpha'])) / veh_nodes[veh_num]['theta'][node_num]
+                    
+                temp_nbl += np.array(list(veh_links[veh_num]['log_term']))
+                nbl = np.hstack([nbl, temp_nbl])
+
+                end_time = time.process_time()
+                total_time += end_time - start_time
+                temp_para_time.append(end_time - start_time)
+
+                veh_links[veh_num].drop('link_flow', axis=1, inplace=True)
+                veh_nodes[veh_num].drop('node_flow', axis=1, inplace=True)
+                veh_links[veh_num].drop('log_term', axis=1, inplace=True)
+
+                
+
+        # 利用者側の勾配を計算
+        for user_num in user_trips.keys():
+            for origin_node in user_trips[user_num].keys():
+
+                start_time = time.process_time()
+
+                temp_nbl = np.array(list(user_links[user_num]['free_flow_time']))
+
+                # 起点別リンクフローを設定
+                num_links = len(user_links[user_num].index)
+                user_links[user_num]['link_flow'] = now_sol[start_index:start_index + num_links]
+                start_index += num_links
+
+                # 起点別ノードフローを計算
+                user_nodes[user_num]['node_flow'] = 0.0
+                for node_num in user_nodes[user_num].index:
+                    in_flow = sum(list(user_links[user_num][user_links[user_num]['term_node'] == node_num]['link_flow']))
+                    user_nodes[user_num].loc[node_num, 'node_flow'] = in_flow
+
+                # エントロピー項を計算
+                user_links[user_num]['log_term'] = 0.0
+                for node_num in user_nodes[user_num].index:
+                    if user_nodes[user_num]['node_flow'][node_num] == 0.0:
+                        continue
+                    link_set = user_links[user_num][user_links[user_num]['term_node'] == node_num]
+                    for index, link in link_set.iterrows():
+                        if link['link_flow'] == 0.0:
+                            continue
+                        user_links[user_num].loc[index, 'log_term'] += math.log(link['link_flow'] / (user_nodes[user_num]['node_flow'][node_num] * link['alpha'])) / user_nodes[user_num]['theta'][node_num]
+                    
+                temp_nbl += np.array(list(user_links[user_num]['log_term']))
+                nbl = np.hstack([nbl, temp_nbl])
+
+                end_time = time.process_time()
+                total_time += end_time - start_time
+                temp_para_time.append(end_time - start_time)
+
+                user_links[user_num].drop('link_flow', axis=1, inplace=True)
+                user_nodes[user_num].drop('node_flow', axis=1, inplace=True)
+                user_links[user_num].drop('log_term', axis=1, inplace=True)
+
+        para_time += max(temp_para_time)
+
+        return nbl, para_time, total_time
+
+
+
+
+    def make_B_eq():
+
+        para_time = 0.0
+        total_time = 0.0
+        temp_para_time = []
+
+        num_var = 0
+        num_const = 0
+        for veh_num in veh_trips.keys():
+            num_var += len(veh_trips[veh_num]) * veh_incMat[veh_num].shape[1]
+            num_const += len(veh_trips[veh_num]) * veh_incMat[veh_num].shape[0]
+        for user_num in user_trips.keys():
+            num_var += len(user_trips[user_num]) * user_incMat[user_num].shape[1]
+            num_const += len(user_trips[user_num]) * user_incMat[user_num].shape[0]
+
+        start_row_index = 0
+        start_col_index = 0
+
+        row = np.array([])
+        col = np.array([])
+        data = np.array([])
+
+        # 車両側のフロー保存則の行列を作成
+        for veh_num in veh_incMat.keys():
+            for origin_node in veh_trips[veh_num].keys():
+                row = np.hstack([row, np.array(veh_incMat[veh_num].row + start_row_index)])
+                col = np.hstack([col, np.array(veh_incMat[veh_num].col + start_col_index)])
+                data = np.hstack([data, np.array(veh_incMat[veh_num].data)])
+
+                start_row_index += veh_incMat[veh_num].shape[0]
+                start_col_index += veh_incMat[veh_num].shape[1]
+
+        # 利用者側のフロー保存則の行列を作成
+        for user_num in user_incMat.keys():
+            for origin_node in user_trips[user_num].keys():
+                row = np.hstack([row, np.array(user_incMat[user_num].row + start_row_index)])
+                col = np.hstack([col, np.array(user_incMat[user_num].col + start_col_index)])
+                data = np.hstack([data, np.array(user_incMat[user_num].data)])
+
+                start_row_index += user_incMat[user_num].shape[0]
+                start_col_index += user_incMat[user_num].shape[1]
+
+        # print(len(row))
+        # print(len(col))
+        # print(len(data))
+        # print(num_var)
+        # print(num_const)
+        B_eq = sparse.csr_matrix((data, (row, col)), shape=(num_const, num_var))
+        # print(B_eq.shape)
+
+        return B_eq, para_time, total_time
+
+    def make_b_eq():
+
+        para_time = 0.0
+        total_time = 0.0
+        temp_para_time = []
+
+        b_eq = np.array([])
+        
+        # 車両側のOD需要を追加
+        for veh_num in veh_trips.keys():
+
+            for origin_node in veh_trips[veh_num].keys():
+
+                temp_b_eq = dict(zip(list(veh_nodes[veh_num].index), [0.0 for i in range(veh_incMat[veh_num].shape[0])]))
+                # print(temp_b_eq)
+                
+                for dest_node in veh_trips[veh_num][origin_node].keys():
+                    temp_b_eq[origin_node] -= veh_trips[veh_num][origin_node][dest_node]
+                    temp_b_eq[dest_node] = veh_trips[veh_num][origin_node][dest_node]
+
+                temp_b_eq = np.array(list(temp_b_eq.values()))
+                # print(temp_b_eq)
+
+                b_eq = np.hstack([b_eq, temp_b_eq])
+
+        
+        # 利用者側のOD需要を追加
+        for user_num in user_trips.keys():
+
+            for origin_node in user_trips[user_num].keys():
+
+                temp_b_eq = dict(zip(list(user_nodes[user_num].index), [0.0 for i in range(user_incMat[user_num].shape[0])]))
+                # print(temp_b_eq)
+                
+                for dest_node in user_trips[user_num][origin_node].keys():
+                    temp_b_eq[origin_node] -= user_trips[user_num][origin_node][dest_node]
+                    temp_b_eq[dest_node] = user_trips[user_num][origin_node][dest_node]
+
+                temp_b_eq = np.array(list(temp_b_eq.values()))
+                # print(temp_b_eq)
+
+                b_eq = np.hstack([b_eq, temp_b_eq])
+
+        return b_eq, para_time, total_time
+
+
+        
+    def make_B():
+
+        para_time = 0.0
+        total_time = 0.0
+        temp_para_time = []
+
+        num_var = 0
+        num_const = TNP_constMat[list(TNP_constMat.keys())[0]].shape[0] + MSV_constMat[list(MSV_constMat.keys())[0]].shape[0]
+        for veh_num in veh_trips.keys():
+            num_var += len(veh_trips[veh_num]) * veh_incMat[veh_num].shape[1]
+            num_const += len(veh_trips[veh_num]) * veh_incMat[veh_num].shape[1]
+        for user_num in user_trips.keys():
+            num_var += len(user_trips[user_num]) * user_incMat[user_num].shape[1]
+            num_const += len(user_trips[user_num]) * user_incMat[user_num].shape[1]
+            
+
+        # print(num_var)
+        # print(TNP_constMat[list(TNP_constMat.keys())[0]].shape[0])
+        # print(MSV_constMat[list(MSV_constMat.keys())[0]].shape[0])
+        # print(num_const)
+
+        start_TNProw_index = 0
+        start_MSrow_index = TNP_constMat[list(TNP_constMat.keys())[0]].shape[0]
+        start_nzero_index = TNP_constMat[list(TNP_constMat.keys())[0]].shape[0] + MSV_constMat[list(MSV_constMat.keys())[0]].shape[0]
+        start_col_index = 0
+
+        row = np.array([])
+        col = np.array([])
+        data = np.array([])
+
+        # 車両側の制約条件の行列を作成
+        for veh_num in veh_incMat.keys():
+            for origin_node in veh_trips[veh_num].keys():
+                # TNPの制約条件
+                row = np.hstack([row, np.array(TNP_constMat[veh_num].row + start_TNProw_index)])
+                col = np.hstack([col, np.array(TNP_constMat[veh_num].col + start_col_index)])
+                data = np.hstack([data, np.array(TNP_constMat[veh_num].data)])
+                # MSの制約条件
+                row = np.hstack([row, np.array(MSV_constMat[veh_num].row + start_MSrow_index)])
+                col = np.hstack([col, np.array(MSV_constMat[veh_num].col + start_col_index)])
+                data = np.hstack([data, -np.array(MSV_constMat[veh_num].data)])
+
+                start_col_index += veh_incMat[veh_num].shape[1]
+
+
+        # 利用者側の制約条件の行列を作成
+        for user_num in user_incMat.keys():
+            for origin_node in user_trips[user_num].keys():
+                # MSの制約条件
+                row = np.hstack([row, np.array(MSU_constMat[user_num].row + start_MSrow_index)])
+                col = np.hstack([col, np.array(MSU_constMat[user_num].col + start_col_index)])
+                data = np.hstack([data, np.array(MSU_constMat[user_num].data)])
+
+                start_col_index += MSU_constMat[user_num].shape[1]
+
+        # 非負制約を追加
+        row = np.hstack([row, np.array(list(range(num_var))) + start_nzero_index])
+        col = np.hstack([col, np.array(list(range(num_var)))])
+        data = np.hstack([data, -np.ones(num_var)])
+
+        # # print(len(row))
+        # # print(len(col))
+        # # print(len(data))
+        # # print(num_var)
+        # # print(num_const)
+        B = sparse.csr_matrix((data, (row, col)), shape=(num_const, num_var))
+        # print(B.shape)
+        # print(B)
+
+        return B, para_time, total_time
+
+    def make_b():
+
+        para_time = 0.0
+        total_time = 0.0
+        temp_para_time = []
+
+        num_var = 0
+        for veh_num in veh_trips.keys():
+            num_var += len(veh_trips[veh_num]) * veh_incMat[veh_num].shape[1]
+        for user_num in user_trips.keys():
+            num_var += len(user_trips[user_num]) * user_incMat[user_num].shape[1]
+
+        # TNP制約
+        b = np.array(TS_links['capacity'])    
+        # MS制約   
+        b = np.hstack([b, np.zeros(MSV_constMat[list(MSV_constMat.keys())[0]].shape[0])])
+        # 非負制約
+        b = np.hstack([b, np.zeros(num_var)])
+
+        # print(b.shape)
+
+        return b, para_time, total_time
+
+
+    # 目的関数
+    def obj_func(now_sol):
+
+        para_time = 0.0
+        total_time = 0.0
+        temp_para_time = []
+
+        start_index = 0
+
+        obj = 0.0
+
+        # 車両側の目的関数値を計算
+        for veh_num in veh_trips.keys():
+            for origin_node in veh_trips[veh_num].keys():
+
+                start_time = time.process_time()
+
+                # 起点別リンクフローを設定
+                num_links = len(veh_links[veh_num].index)
+                veh_links[veh_num]['link_flow'] = now_sol[start_index:start_index + num_links]
+                start_index += num_links
+
+                # 起点別ノードフローを計算
+                veh_nodes[veh_num]['node_flow'] = 0.0
+                for node_num in veh_nodes[veh_num].index:
+                    in_flow = sum(list(veh_links[veh_num][veh_links[veh_num]['term_node'] == node_num]['link_flow']))
+                    # out_flow = sum(list(veh_links[veh_num][veh_links[veh_num]['init_node'] == node_num]['link_flow']))
+                    veh_nodes[veh_num].loc[node_num, 'node_flow'] = in_flow
+
+                # 線形項を計算
+                obj += np.array(list(veh_links[veh_num]['link_flow'])) @ np.array(list(veh_links[veh_num]['free_flow_time']))
+                # print(obj)
+
+                # エントロピー項を計算
+                veh_nodes[veh_num]['log_term'] = 0.0
+                for node_num in veh_nodes[veh_num].index:
+                    if veh_nodes[veh_num]['node_flow'][node_num] == 0.0:
+                        continue
+                    link_set = veh_links[veh_num][veh_links[veh_num]['term_node'] == node_num]
+                    # print(link_set)
+                    for index, link in link_set.iterrows():
+                        if link['link_flow'] == 0.0:
+                            continue
+                        # print(link['link_flow'])
+                        # print(veh_nodes[veh_num]['node_flow'][node_num])
+                        # print(link['link_flow'] * math.log(link['link_flow'] / veh_nodes[veh_num]['node_flow'][node_num]))
+                        veh_nodes[veh_num].loc[node_num, 'log_term'] += link['link_flow'] * math.log(link['link_flow'] / (veh_nodes[veh_num]['node_flow'][node_num] * link['alpha']))
+                    
+                    # print(np.array(veh_nodes[veh_num]['log_term']))
+                    # print(1.0/np.array(veh_nodes[veh_num]['theta']))
+
+                obj += np.array(veh_nodes[veh_num]['log_term']) @ (1.0 / np.array(veh_nodes[veh_num]['theta']))
+                # print(obj)
+
+                end_time = time.process_time()
+                total_time += end_time - start_time
+                temp_para_time.append(end_time - start_time)
+
+                veh_links[veh_num].drop('link_flow', axis=1, inplace=True)
+                veh_nodes[veh_num].drop('node_flow', axis=1, inplace=True)
+                veh_nodes[veh_num].drop('log_term', axis=1, inplace=True)
+
+                
+
+        # 利用者側の目的関数値を計算
+        for user_num in user_trips.keys():
+            for origin_node in user_trips[user_num].keys():
+
+                start_time = time.process_time()
+
+                # 起点別リンクフローを設定
+                num_links = len(user_links[user_num].index)
+                user_links[user_num]['link_flow'] = now_sol[start_index:start_index + num_links]
+                start_index += num_links
+
+                # 起点別ノードフローを計算
+                user_nodes[user_num]['node_flow'] = 0.0
+                for node_num in user_nodes[user_num].index:
+                    in_flow = sum(list(user_links[user_num][user_links[user_num]['term_node'] == node_num]['link_flow']))
+                    user_nodes[user_num].loc[node_num, 'node_flow'] = in_flow
+
+                # 線形項を計算
+                obj += np.array(list(user_links[user_num]['link_flow'])) @ np.array(list(user_links[user_num]['free_flow_time']))
+                # print(obj)
+
+                # エントロピー項を計算
+                user_nodes[user_num]['log_term'] = 0.0
+                for node_num in user_nodes[user_num].index:
+                    if user_nodes[user_num]['node_flow'][node_num] == 0.0:
+                        continue
+                    link_set = user_links[user_num][user_links[user_num]['term_node'] == node_num]
+                    # print(link_set)
+                    for index, link in link_set.iterrows():
+                        if link['link_flow'] == 0.0:
+                            continue
+                        user_nodes[user_num].loc[node_num, 'log_term'] += link['link_flow'] * math.log(link['link_flow'] / (user_nodes[user_num]['node_flow'][node_num] * link['alpha']))
+
+                obj += np.array(user_nodes[user_num]['log_term']) @ (1.0 / np.array(user_nodes[user_num]['theta']))
+                # print(obj)
+
+                end_time = time.process_time()
+                total_time += end_time - start_time
+                temp_para_time.append(end_time - start_time)
+
+                user_links[user_num].drop('link_flow', axis=1, inplace=True)
+                user_nodes[user_num].drop('node_flow', axis=1, inplace=True)
+                user_nodes[user_num].drop('log_term', axis=1, inplace=True)
+
+        para_time += max(temp_para_time)
+
+        # print('obj: ', obj)
+
+        return obj, para_time, total_time
+
+        
+    # 初期解を作成する関数
+    def make_init_sol():
+
+        init_sol = np.array([])
+
+        # 車両側のフローを全てOD直結リンクに流す
+        for veh_num in veh_trips.keys():
+
+            for origin_node in veh_trips[veh_num].keys():
+
+                veh_links[veh_num]['now_flow'] = 0.0
+
+                for dest_node in veh_trips[veh_num][origin_node].keys():
+
+                    # print(origin_node, dest_node, veh_trips[veh_num][origin_node][dest_node])
+                    link_set = veh_links[veh_num][(veh_links[veh_num]['init_node']==origin_node) & (veh_links[veh_num]['term_node']==dest_node)]
+                    for index, link in link_set.iterrows():
+                        veh_links[veh_num].loc[index, 'now_flow'] = veh_trips[veh_num][origin_node][dest_node]
+
+                add_sol = np.array(list(veh_links[veh_num]['now_flow']))
+                init_sol = np.hstack([init_sol, add_sol])
+                veh_links[veh_num].drop('now_flow', axis=1, inplace=True)
+
+        # 利用者側のフローを全てOD直結リンクに流す
+        for user_num in user_trips.keys():
+
+            for origin_node in user_trips[user_num].keys():
+
+                user_links[user_num]['now_flow'] = 0.0
+
+                for dest_node in user_trips[user_num][origin_node].keys():
+                    link_set = user_links[user_num][(user_links[user_num]['init_node']==origin_node) & (user_links[user_num]['term_node']==dest_node)]
+                    for index, link in link_set.iterrows():
+                        user_links[user_num].loc[index, 'now_flow'] = user_trips[user_num][origin_node][dest_node]
+
+                add_sol = np.array(list(user_links[user_num]['now_flow']))
+                init_sol = np.hstack([init_sol, add_sol])
+                user_links[user_num].drop('now_flow', axis=1, inplace=True)
+
+        return init_sol
+
+
+    init_sol = make_init_sol()
+    # print(len(init_sol))
+
+    # [init_nbl, temp_para_time, temp_total_time] = nbl_func(init_sol)
+    # print(len(init_nbl))
+    # print(init_nbl)
+    # [init_obj, temp_para_time, temp_total_time] = obj_func(init_sol)
+    # print(init_obj)
+
+    [B_eq, temp_para_time, temp_total_time] = make_B_eq()
+    [B, temp_para_time, temp_total_time] = make_B()
+    [b_eq, temp_para_time, temp_total_time] = make_b_eq()
+    [b, temp_para_time, temp_total_time] = make_b()
+    # print(B_eq.shape)
+    # print(b_eq.shape)
+    # print(B.shape)
+    # print(b.shape)
+
+    # lp.linprog(init_nbl, B, b, B_eq, b_eq)
+
+    fw = msa.FrankWolf()
+    fw.set_x_init(init_sol)
+    fw.set_obj_func(obj_func)
+    fw.set_nbl_func(nbl_func)
+    fw.set_B(B)
+    fw.set_b(b)
+    fw.set_B_eq(B_eq)
+    fw.set_b_eq(b_eq)
+    fw.set_conv_judge(0.1)
+    fw.set_output_iter(1)
+    fw.set_output_root(output_root)
+    fw.exect_FW()
+
+
+    # print('\n\n')
+
+    # print('sol: ', fista.sol)
+    print('sol_obj: ', fw.sol_obj)
+    print('iteration: ', fw.iter)
+    print('pararel_time: ', fw.para_time)
+    print('total_time: ', fw.total_time)
+    print('num_call_obj: ', fw.num_call_obj)
+    print('num_call_nbl: ', fw.num_call_nbl)
+    # print('output_data: ')
+    # print(fista.output_data)
+
+    return fw
 
 
 
@@ -2064,9 +2572,9 @@ if __name__ == '__main__':
 
 
 
-        # output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'Frank-wolf')
-        # os.makedirs(output_root, exist_ok=True)
-        # NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
+        output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'Frank-wolf')
+        os.makedirs(output_root, exist_ok=True)
+        NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
 
 
     # for orig_node in veh_trips[0].keys():
