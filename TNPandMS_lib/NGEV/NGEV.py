@@ -36,7 +36,7 @@ def NGEV(nodes, links, node_order, alpha_name = 'alpha', theta_name = 'theta', c
     start_time = time.process_time()
 
 
-    # 起点ノードから順に期待最小費用を計算
+    # 起点ノードから順に期待最小費用を計算 
     for i in node_order[0][1:]:
 
         exp_sum = 0
@@ -2185,6 +2185,7 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
                 # cost を基に，NGEV配分を計算
                 temp_time = NGEV(veh_nodes[veh_num], veh_links[veh_num], [down_order, up_order], cost_name='cost')
                 temp_para_time.append(temp_time)
+                print(temp_time)
                 total_time += temp_time
 
                 start_time = time.process_time()
@@ -2251,7 +2252,13 @@ def NGEV_TNPandMS(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, u
                 user_links[user_num].drop('percent', axis=1, inplace=True)
                 user_links[user_num].drop('NGEV_flow', axis=1, inplace=True)
 
+                # print('79要素：', now_flow[0, 79])
+
+            # print(MSU_constMat[user_num].toarray()[19][79])
+
         para_time += max(temp_para_time)
+
+        print(nbl_MS)
 
         nbl = np.concatenate([nbl_TNP, nbl_MS])
         # min に合わせるために符号を逆に
@@ -2572,9 +2579,9 @@ if __name__ == '__main__':
 
 
 
-        output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'Frank-wolf')
-        os.makedirs(output_root, exist_ok=True)
-        NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
+        # output_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'result', 'Frank-wolf')
+        # os.makedirs(output_root, exist_ok=True)
+        # NGEV_TNPandMS_FrankWolf(veh_nodes, veh_links, veh_trips, TNP_constMat, MSV_constMat, V_incMat, user_nodes, user_links, user_trips, MSU_constMat, U_incMat, TS_links, output_root)
 
 
     # for orig_node in veh_trips[0].keys():
