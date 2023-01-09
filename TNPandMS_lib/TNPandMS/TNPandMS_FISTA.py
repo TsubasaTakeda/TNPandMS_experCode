@@ -243,7 +243,7 @@ if __name__ == '__main__':
 
     net_name = 'Sample'
     # scenarios = ['Scenario_0', 'Scenario_1', 'Scenario_2', 'Scenario_3']
-    scenarios = ['Scenario_2']
+    scenarios = ['Scenario_0']
 
     for scene in scenarios:
 

@@ -4,7 +4,7 @@ import os
 import time
 import sys
 import numpy as np
-import gurobipy as gp
+# import gurobipy as gp
 import linprog as lp
 
 

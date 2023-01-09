@@ -167,7 +167,7 @@ def NGEV_CC_MS(user_info, MS_capa):
 
 
 # 車両側 NGEV-CC配分アルゴリズム (no cycle)
-def NGEV_CC_TNP(veh_info, TNP_capa):
+def NGEV_CC_TNP(veh_info, TNP_capa, temp_info):
 
     # 勾配関数
     def nbl_func(now_sol_TNP):
@@ -356,7 +356,7 @@ def LOGIT_TNPandMS_MSA(veh_info, user_info, TNP_capa, temp_info, output_root):
         MS_price_to_vehCost(MS_price)
 
         # 修正された車両コストでNGEV_CC_TNPを計算
-        TNP_fista = NGEV_CC_TNP(veh_info, TNP_capa)
+        TNP_fista = NGEV_CC_TNP(veh_info, TNP_capa, temp_info)
         TNP_price = TNP_fista.sol
         temp_vehFlow = TNP_price_to_vehFlow(TNP_price)
         para_time += TNP_fista.para_time
