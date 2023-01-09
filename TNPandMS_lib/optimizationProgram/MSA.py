@@ -9,15 +9,27 @@ import linprog as lp
 
 # 黄金分割法
 def goldenRatioSearch(function, range, tolerance):
+
+    para_time = 0.0
+    total_time = 0.0
+
+
     gamma = (-1+np.sqrt(5))/2
     a = range[0]
     b = range[1]
     p = b-gamma*(b-a)
     q = a+gamma*(b-a)
-    Fa = function(a)
-    Fb = function(b)
-    Fp = function(p)
-    Fq = function(q)
+    [Fa, temp_para_time, temp_total_time] = function(a)
+    [Fb, temp_para_time, temp_total_time] = function(b)
+    [Fp, temp_para_time, temp_total_time] = function(p)
+    para_time += temp_para_time
+    total_time += temp_total_time
+    [Fq, temp_para_time, temp_total_time] = function(q)
+    para_time += temp_para_time 
+    total_time += temp_total_time
+
+    num_call_obj = 4
+
     while 1:
 
         if Fp <= Fq:
@@ -26,14 +38,20 @@ def goldenRatioSearch(function, range, tolerance):
             Fb = Fq
             Fq = Fp
             p = b-gamma*(b-a)
-            Fp = function(p)
+            [Fp, temp_para_time, temp_total_time] = function(p)
+            para_time += temp_para_time
+            total_time += temp_total_time
+            num_call_obj += 1
         else:
             a = p
             p = q
             Fa = Fp
             Fp = Fq
             q = a+gamma*(b-a)
-            Fq = function(q)
+            [Fq, temp_para_time, temp_total_time] = function(q)
+            para_time += temp_para_time
+            total_time += temp_total_time
+            num_call_obj += 1
         
         conv = Fa - Fb
         if conv < 0.0:
@@ -43,7 +61,7 @@ def goldenRatioSearch(function, range, tolerance):
             break
 
     alpha = (a+b)/2
-    return alpha
+    return alpha, para_time, total_time, num_call_obj
 
 class MSA:
 
@@ -271,9 +289,9 @@ class PL:
             temp_sol = now_sol + dir_vec*step_size
             self.obj_func(temp_sol)
 
-        stepSize = goldenRatioSearch(stepFunc, [0.0, 1.0], self.conv_judge)
+        [stepSize, para_time, total_time, num_call_obj] = goldenRatioSearch(stepFunc, [0.0, 1.0], self.conv_judge)
 
-        return stepSize
+        return stepSize, para_time, total_time, num_call_obj
 
 
     # 初期解・目的関数・勾配関数・収束判定値(目的関数のdelta)・解を表示するタイミング
@@ -342,7 +360,10 @@ class PL:
             total_time += temp_total_time
             num_call_dir += 1
 
-            stepSize = self.calc_stepSize(prev_sol, dir_vec)
+            [stepSize, temp_para_time, temp_total_time, temp_num_call_obj] = self.calc_stepSize(prev_sol, dir_vec)
+            para_time += temp_para_time
+            total_time += temp_total_time
+            num_call_obj += temp_num_call_obj
 
             now_sol = prev_sol + dir_vec * stepSize
             [now_obj, temp_para_time, temp_total_time] = self.obj_func(now_sol)  
