@@ -534,6 +534,7 @@ class FISTA_PROJ_BACK:
         while 1:
 
             [temp_sol, temp_para_time, temp_total_time] = self.proj_func(now_sol - now_nbl/(self.back_para**iota * now_lips))
+            temp_sol = now_sol - now_nbl/(self.back_para**iota * now_lips)
             num_call_proj += 1
             end_time = time.process_time()
             para_time += end_time - start_time
@@ -546,7 +547,9 @@ class FISTA_PROJ_BACK:
 
             start_time = time.process_time()
             now_nbl_nolm = np.dot(temp_sol-now_sol, temp_sol-now_sol)
-            Q = now_obj - now_nbl_nolm/(2.0*self.back_para**iota*now_lips) - np.dot(temp_sol - now_sol, now_nbl)
+            Q = now_obj + np.dot(now_nbl, temp_sol - now_sol) + now_nbl_nolm * (self.back_para**iota*now_lips/2.0)
+
+            # print('F: ', F, 'Q: ', Q)
 
             if F <= Q:
                 break
