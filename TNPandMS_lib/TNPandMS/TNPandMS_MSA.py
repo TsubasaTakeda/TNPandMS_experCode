@@ -455,7 +455,7 @@ def LOGIT_TNPandMS_MSA(veh_info, user_info, TNP_capa, temp_info, output_root):
     veh_msa.set_x_init(init_sol)
     veh_msa.set_obj_func(obj_func)
     veh_msa.set_dir_func(dir_func)
-    veh_msa.set_conv_judge(0.001)
+    veh_msa.set_conv_judge(0.1)
     veh_msa.set_output_iter(1)
     veh_msa.set_output_root(output_root)
     veh_msa.exect_MSA()
