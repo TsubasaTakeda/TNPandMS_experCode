@@ -77,7 +77,7 @@ def LOGIT_TNPandMS_FISTA(veh_info, user_info, TNP_capa, output_root):
         # 利用者側のフローを計算
         for user_num in user_info.keys():
 
-            
+
             # LOGIT配分を計算
             start_time = time.process_time()
             costVec = user_info[user_num].user_costVec + now_sol_MS @ user_info[user_num].MSU_constMat
@@ -165,7 +165,8 @@ def LOGIT_TNPandMS_FISTA(veh_info, user_info, TNP_capa, output_root):
 
         start_time = time.process_time()
 
-        now_sol[now_sol < 0.0] = 0.0
+        # now_sol[now_sol < 0.0] = 0.0
+        now_sol = now_sol.clip(0.0)
 
         end_time = time.process_time()
 
@@ -241,8 +242,8 @@ if __name__ == '__main__':
     import os
 
     net_name = 'Sample'
-    scenarios = ['Scenario_0', 'Scenario_1', 'Scenario_2', 'Scenario_3']
-    # scenarios = ['Scenario_2']
+    # scenarios = ['Scenario_0', 'Scenario_1', 'Scenario_2', 'Scenario_3']
+    scenarios = ['Scenario_2']
 
     for scene in scenarios:
 
@@ -257,7 +258,6 @@ if __name__ == '__main__':
         TS_links = rn.read_net(os.path.join(root, '..', '_sampleData', net_name, scene, 'TS_net', 'Sample_ts_net.tntp'))
         TNP_capa = np.array(TS_links['capacity'])
         del TS_links
-
 
         # -----------------車両側の仮想ネットワーク情報を追加-------------------------------------------------------------------
         veh_links = {}
@@ -281,10 +281,7 @@ if __name__ == '__main__':
             veh_costVec[int(file)] = np.array(veh_links[int(file)]['free_flow_time'])
             
             # tripsを行列形式に変換
-            veh_tripsMat[int(file)] = np.zeros(shape=(int(veh_num_zones[int(file)]/2), veh_num_nodes[int(file)]))
-            for orig_node in veh_trips[int(file)].keys():
-                for dest_node in veh_trips[int(file)][orig_node].keys():
-                    veh_tripsMat[int(file)][orig_node-1, dest_node-1] = veh_trips[int(file)][orig_node][dest_node]
+            veh_tripsMat[int(file)] = logit.make_tripsMat(veh_trips[int(file)], int(veh_num_zones[int(file)]/2), int(veh_num_nodes[int(file)]))
 
         del veh_links
         del veh_trips
@@ -313,18 +310,13 @@ if __name__ == '__main__':
             user_costVec[int(file)] = np.array(user_links[int(file)]['free_flow_time'])
 
             # tripsを行列形式に変換
-            user_tripsMat[int(file)] = np.zeros(shape=(int(user_num_zones[int(file)]/2), user_num_nodes[int(file)]))
-            for orig_node in user_trips[int(file)].keys():
-                for dest_node in user_trips[int(file)][orig_node].keys():
-                    user_tripsMat[int(file)][orig_node-1, dest_node-1] = user_trips[int(file)][orig_node][dest_node]
+            user_tripsMat[int(file)] = logit.make_tripsMat(user_trips[int(file)], int(user_num_zones[int(file)]/2), int(user_num_nodes[int(file)]))
 
         del user_links
         del user_trips
         del user_num_nodes
-        del user_num_zones        
-        
-        
-        
+        del user_num_zones
+
         # -----------------制約条件の係数行列を取得-------------------------------------------------------------------
 
         veh_root = os.path.join(root, '..', '_sampleData', net_name, scene, 'constMat', 'vehicle')

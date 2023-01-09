@@ -8,6 +8,15 @@ import time
 from scipy import sparse
 import readNetwork as rn
 
+# tripsデータ（OD需要）を行列（起点ノード×全ノード）形式に変換する関数
+def make_tripsMat(trips, num_init_node, num_nodes):
+    tripsMat = np.zeros(shape=(num_init_node, num_nodes))
+    for orig_node in trips.keys():
+        for dest_node in trips[orig_node].keys():
+            tripsMat[orig_node-1, dest_node-1] = trips[orig_node][dest_node]
+    return tripsMat
+
+
 # 起点ノード×リンクの接続行列を作成する関数
 def make_init_incMat(links, num_nodes):
 
@@ -120,6 +129,28 @@ def LOGIT(cost_vec, tripsMat, init_incMat, term_incMat, theta):
 
     return link_flow_vec
 
+
+# 起点別ロジット配分を計算する関数(起点別リンクフローを並べたベクトルを返す)
+def LOGIT_perOrig(cost_vec, tripsMat, init_incMat, term_incMat, theta):
+
+    link_weight = make_link_weight(cost_vec, theta)
+    weight_mat = trans_linkVec_to_linkMat(link_weight, init_incMat, term_incMat)
+    exp_minCost = calc_expected_minCost_mat(weight_mat)
+
+    # total_link_flow = np.zeros(shape = (init_incMat.shape[0], init_incMat.shape[0]))
+    link_flow = np.array([])
+    
+    for orig_node_id in range(tripsMat.shape[0]):
+
+        per_mat = calc_choPer(weight_mat, exp_minCost, orig_node_id)
+        node_flow = calc_nodeFlow(per_mat, tripsMat[orig_node_id])
+        temp_link_flow = calc_linkFlow(per_mat, node_flow)
+        temp_link_flow_vec = trans_linkMat_to_linkVec(temp_link_flow, init_incMat, term_incMat)
+        link_flow = np.hstack([link_flow, temp_link_flow_vec])
+
+    return link_flow
+
+# ロジット配分の総期待最小費用を計算する関数
 def LOGIT_cost(cost_vec, tripsMat, init_incMat, term_incMat, theta):
     
     link_weight = make_link_weight(cost_vec, theta)
@@ -186,10 +217,10 @@ if __name__ == '__main__':
             
             
             # tripsを行列形式に変換
-            veh_tripsMat[int(file)] = np.zeros(shape=(int(veh_num_zones[int(file)]/2), veh_num_nodes[int(file)]))
-            for orig_node in veh_trips[int(file)].keys():
-                for dest_node in veh_trips[int(file)][orig_node].keys():
-                    veh_tripsMat[int(file)][orig_node-1, dest_node-1] = veh_trips[int(file)][orig_node][dest_node]
+            veh_tripsMat[int(file)] = make_tripsMat(veh_trips[int(file)], int(veh_num_zones[int(file)]/2), int(veh_num_nodes[int(file)]))
+            # for orig_node in veh_trips[int(file)].keys():
+            #     for dest_node in veh_trips[int(file)][orig_node].keys():
+            #         veh_tripsMat[int(file)][orig_node-1, dest_node-1] = veh_trips[int(file)][orig_node][dest_node]
 
         del veh_links
         del veh_trips
@@ -225,10 +256,7 @@ if __name__ == '__main__':
             user_costVec[int(file)] = np.array(user_links[int(file)]['free_flow_time'])
 
             # tripsを行列形式に変換
-            user_tripsMat[int(file)] = np.zeros(shape=(int(user_num_zones[int(file)]/2), user_num_nodes[int(file)]))
-            for orig_node in user_trips[int(file)].keys():
-                for dest_node in user_trips[int(file)][orig_node].keys():
-                    user_tripsMat[int(file)][orig_node-1, dest_node-1] = user_trips[int(file)][orig_node][dest_node]
+            user_tripsMat[int(file)] = make_tripsMat(user_trips[int(file)], int(user_num_zones[int(file)]/2), int(user_num_nodes[int(file)]))
 
         del user_links
         del user_trips
