@@ -287,7 +287,8 @@ class PL:
 
         def stepFunc(step_size):
             temp_sol = now_sol + dir_vec*step_size
-            self.obj_func(temp_sol)
+            [temp_obj, para_time, total_time] = self.obj_func(temp_sol)
+            return temp_obj, para_time, total_time
 
         [stepSize, para_time, total_time, num_call_obj] = goldenRatioSearch(stepFunc, [0.0, 1.0], self.conv_judge)
 
