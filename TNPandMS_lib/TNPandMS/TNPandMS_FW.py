@@ -208,8 +208,8 @@ def LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root):
                 temp_nbl = veh_info[veh_num].veh_costVec.copy()
 
                 # エントロピー項の勾配
-                veh_link_logTerm = np.log(veh_linkFlow, out=np.zeros_like(veh_linkFlow), where=veh_linkFlow != 0.0)
-                veh_node_logTerm = np.log(veh_nodeFlow, out=np.zeros_like(veh_nodeFlow), where=veh_nodeFlow != 0.0)
+                veh_link_logTerm = np.log(veh_linkFlow, out=np.zeros_like(veh_linkFlow), where=veh_linkFlow > 0.0)
+                veh_node_logTerm = np.log(veh_nodeFlow, out=np.zeros_like(veh_nodeFlow), where=veh_nodeFlow > 0.0)
                 temp_nbl += veh_link_logTerm 
                 temp_nbl -= veh_node_logTerm @ veh_info[veh_num].veh_term_incMat
 
@@ -292,8 +292,8 @@ def LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root):
                 # print('linear term: ', veh_info[veh_num].veh_costVec @ veh_linkFlow)
 
                 # エントロピー項を計算
-                veh_link_logTerm = np.log(veh_linkFlow, out=np.zeros_like(veh_linkFlow), where=veh_linkFlow != 0.0)
-                veh_node_logTerm = np.log(veh_nodeFlow, out=np.zeros_like(veh_nodeFlow), where=veh_nodeFlow != 0.0)
+                veh_link_logTerm = np.log(veh_linkFlow, out=np.zeros_like(veh_linkFlow), where=veh_linkFlow > 0.0)
+                veh_node_logTerm = np.log(veh_nodeFlow, out=np.zeros_like(veh_nodeFlow), where=veh_nodeFlow > 0.0)
                 obj += (veh_linkFlow @ veh_link_logTerm - veh_nodeFlow @ veh_node_logTerm) / veh_info[veh_num].theta
 
                 end_time = time.process_time()
