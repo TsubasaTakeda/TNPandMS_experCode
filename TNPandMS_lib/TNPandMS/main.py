@@ -183,4 +183,4 @@ for net_name in networks:
 
                 output_root = os.path.join(root, '..', dir_name, net_name, scene, 'result', 'FW_LOGIT')
                 os.makedirs(output_root, exist_ok=True)
-                fw.LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, temp_info, output_root)
+                fw.LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root)
