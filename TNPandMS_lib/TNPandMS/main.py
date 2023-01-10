@@ -11,6 +11,7 @@ import LOGIT as logit
 import TNPandMS_FISTA as fista
 import TNPandMS_MSA as msa
 import TNPandMS_PL as pl
+import TNPandMS_FW as fw
 
 
 class VEH_INFO:
@@ -182,4 +183,4 @@ for net_name in networks:
 
                 output_root = os.path.join(root, '..', dir_name, net_name, scene, 'result', 'FW_LOGIT')
                 os.makedirs(output_root, exist_ok=True)
-                pl.LOGIT_TNPandMS_PL(veh_info, user_info, TNP_capa, temp_info, output_root)
+                fw.LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, temp_info, output_root)
