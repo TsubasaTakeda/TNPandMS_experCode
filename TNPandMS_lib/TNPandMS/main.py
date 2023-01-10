@@ -46,8 +46,8 @@ class TEMP_INFO:
 dir_name = '_sampleData'
 networks = ['GridNet_4', 'GridNet_9', 'GridNet_16', 'GridNet_25']
 scenarios = ['Scenario_0']
-# algorithms = ['TNPandMS_FISTA', 'TNPandMS_MSA', 'TNPandMS_PL']
-algorithms = ['TNPandMS_PL']
+# algorithms = ['TNPandMS_FISTA', 'TNPandMS_MSA', 'TNPandMS_PL', 'TNPandMS_FW']
+algorithms = ['TNPandMS_FW']
 
 
 for net_name in networks:
@@ -175,5 +175,11 @@ for net_name in networks:
             if algo == 'TNPandMS_PL':
 
                 output_root = os.path.join(root, '..', dir_name, net_name, scene, 'result', 'PL_LOGIT')
+                os.makedirs(output_root, exist_ok=True)
+                pl.LOGIT_TNPandMS_PL(veh_info, user_info, TNP_capa, temp_info, output_root)
+
+            if algo == 'TNPandMS_FW':
+
+                output_root = os.path.join(root, '..', dir_name, net_name, scene, 'result', 'FW_LOGIT')
                 os.makedirs(output_root, exist_ok=True)
                 pl.LOGIT_TNPandMS_PL(veh_info, user_info, TNP_capa, temp_info, output_root)
