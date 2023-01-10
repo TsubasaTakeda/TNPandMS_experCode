@@ -136,10 +136,6 @@ class FrankWolf:
         para_time += temp_time
         total_time += temp_time
 
-        # for i in range(temp_sol.shape[0]):
-        #     if temp_sol[i] < 0.0:
-        #         print('!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! ',i,  temp_sol[i])
-
         dir_vec = temp_sol - now_sol
 
         return dir_vec, para_time, total_time
@@ -192,8 +188,9 @@ class FrankWolf:
 
         # 初期状態の諸々を計算
         [now_obj, temp_para_time, temp_total_time] = self.obj_func(self.x_init)
-        [now_nbl, temp_para_time, temp_total_time] = self.nbl_func(self.x_init)
-        now_conv = np.max(now_nbl)
+        # [now_nbl, temp_para_time, temp_total_time] = self.nbl_func(self.x_init)
+        # now_conv = np.max(now_nbl)
+        now_conv = sys.float_info.max
 
         output_data = pd.DataFrame([[0, 0.0, 0.0, now_obj, now_conv, 0, 0]], columns=['Iteration', 'pararel_time', 'total_time', 'now_obj', 'now_conv', 'num_call_obj', 'num_call_nbl'])
         if self.output_root != null:
@@ -221,6 +218,7 @@ class FrankWolf:
             iteration += 1
             
             prev_sol = now_sol
+            prev_obj = now_obj
 
             [prev_nbl, temp_para_time, temp_total_time] = self.nbl_func(prev_sol)
             para_time += temp_para_time
@@ -242,7 +240,10 @@ class FrankWolf:
             total_time += temp_total_time
             num_call_obj += 1
 
-            now_conv = np.max(prev_nbl)
+            # now_conv = np.max(prev_nbl)
+            now_conv = prev_obj - now_obj
+            if now_conv < 0.0:
+                now_conv = -now_conv
 
             if iteration % self.output_iter == 0:
                 
