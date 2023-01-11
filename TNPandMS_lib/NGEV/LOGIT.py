@@ -50,7 +50,11 @@ def trans_linkMat_to_linkVec(linkMat, init_incMat, term_incMat):
 # ベクトル形式のリンク情報を行列形式に変換する関数
 def trans_linkVec_to_linkMat(linkVec, init_incMat, term_incMat):
 
-    temp_linkMat = np.diag(linkVec)
+    num_vec = linkVec.shape[0]
+    row = np.arange(num_vec)
+    col = np.arange(num_vec)
+
+    temp_linkMat = sparse.csr_matrix((linkVec, (row, col)))
 
     linkMat = init_incMat @ temp_linkMat @ term_incMat.T
 
@@ -112,9 +116,13 @@ def calc_linkFlow(per_mat, nodeFlow):
 # ロジット配分を計算する関数
 def LOGIT(cost_vec, tripsMat, init_incMat, term_incMat, theta):
 
+    start_time = time.process_time()
+
     link_weight = make_link_weight(cost_vec, theta)
     weight_mat = trans_linkVec_to_linkMat(link_weight, init_incMat, term_incMat)
     exp_minCost = calc_expected_minCost_mat(weight_mat)
+
+    print(time.process_time() - start_time)
 
     total_link_flow = np.zeros(shape = (init_incMat.shape[0], init_incMat.shape[0]))
     
