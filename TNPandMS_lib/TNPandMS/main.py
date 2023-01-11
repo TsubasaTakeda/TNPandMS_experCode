@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+from scipy import sparse
 sys.path.append('../Network/')
 sys.path.append('../optimizationProgram/')
 sys.path.append('../Matrix/')
@@ -49,7 +50,7 @@ dir_name = '_sampleData'
 networks = ['GridNet_25']
 scenarios = ['Scenario_0']
 # algorithms = ['TNPandMS_FISTA', 'TNPandMS_MSA', 'TNPandMS_PL', 'TNPandMS_FW']
-algorithms = ['TNPandMS_FW']
+algorithms = ['TNPandMS_FISTA']
 
 
 for net_name in networks:
@@ -91,6 +92,7 @@ for net_name in networks:
             
             # tripsを行列形式に変換
             veh_tripsMat[int(file)] = logit.make_tripsMat(veh_trips[int(file)], int(veh_num_zones[int(file)]/2), int(veh_num_nodes[int(file)]))
+            veh_tripsMat[int(file)] = sparse.csr_matrix(veh_tripsMat[int(file)])
 
         del veh_links
         del veh_trips
@@ -120,6 +122,7 @@ for net_name in networks:
 
             # tripsを行列形式に変換
             user_tripsMat[int(file)] = logit.make_tripsMat(user_trips[int(file)], int(user_num_zones[int(file)]/2), int(user_num_nodes[int(file)]))
+            user_tripsMat[int(file)] = sparse.csr_matrix(user_tripsMat[int(file)])
 
         del user_links
         del user_trips

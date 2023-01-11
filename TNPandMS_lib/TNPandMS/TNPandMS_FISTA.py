@@ -202,7 +202,7 @@ def LOGIT_TNPandMS_FISTA(veh_info, user_info, TNP_capa, output_root):
     # print(temp_para_time)
     # print(temp_total_time)
 
-    total_flow = np.sum(list(veh_info[list(veh_info.keys())[0]].veh_tripsMat))
+    total_flow = np.sum(list(veh_info[list(veh_info.keys())[0]].veh_tripsMat.data))
     max_cost = np.max(list(veh_info[list(veh_info.keys())[0]].veh_costVec))
 
     fista = ag.FISTA_PROJ_BACK()
