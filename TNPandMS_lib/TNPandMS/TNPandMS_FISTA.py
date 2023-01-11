@@ -176,10 +176,17 @@ def LOGIT_TNPandMS_FISTA(veh_info, user_info, TNP_capa, output_root):
 
         [now_nbl, para_time, total_time] = nbl_func(now_sol)
         start_time = time.process_time()
-        if np.min(now_nbl) > 0:
-            conv = 0.0
+        conv_vec = - now_sol * now_nbl
+        min_conv = np.min(conv_vec)
+        max_conv = np.max(conv_vec)
+        if max_conv > - min_conv:
+            conv = max_conv
         else:
-            conv = -np.min(now_nbl)
+            conv = -min_conv
+        # if np.min(conv_vec) > 0:
+        #     conv = 0.0
+        # else:
+        #     conv = -np.min(now_nbl)
         # conv = - (now_sol @ now_nbl)
         end_time = time.process_time()
 
