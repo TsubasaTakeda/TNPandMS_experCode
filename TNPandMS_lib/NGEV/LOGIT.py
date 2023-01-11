@@ -183,7 +183,7 @@ if __name__ == '__main__':
 
 
         # 時空間ネットワークを読み込む
-        TS_links = rn.read_net(os.path.join(root, '..', '_sampleData', net_name, scene, 'TS_net', 'Sample_ts_net.tntp'))
+        TS_links = rn.read_net(os.path.join(root, '..', '_sampleData', net_name, scene, 'TS_net', 'netname_ts_net.tntp'.replace('netname', net_name)))
         # print(TS_links)
 
 
