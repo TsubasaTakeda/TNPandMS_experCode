@@ -108,9 +108,12 @@ def calc_choPer(weight_mat, exp_minCost, orig_node_id):
 # ノードフローを計算する関数
 def calc_nodeFlow(per_mat, demand):
 
-    node_per_mat = np.eye(per_mat.shape[0])
-    temp_per_mat = node_per_mat.copy()
-    # print(np.diag(temp_per_mat))
+    num_vec = per_mat.shape[0]
+    data = np.ones(num_vec)
+    row_col = np.arange(num_vec)
+
+    node_per_mat = sparse.csr_matrix((data, (row_col, row_col)))
+    temp_per_mat = sparse.csr_matrix((data, (row_col, row_col)))
 
     while np.max(temp_per_mat) > 0.0:
 
