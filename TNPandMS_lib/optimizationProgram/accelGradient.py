@@ -504,7 +504,7 @@ class FISTA_PROJ_BACK:
             self.output_data = output_data
             if self.output_root != null:
                 output_data.to_csv(os.path.join(self.output_root, 'result.csv'))
-                np.savetxt(os.path.join(self.output_root, 'sol.csv'), self.sol)
+            np.savetxt(os.path.join(self.output_root, 'sol.csv'), self.sol)
 
         print('finish accel gradient projection method')
 
