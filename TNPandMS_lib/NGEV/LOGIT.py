@@ -70,7 +70,13 @@ def make_link_weight(cost_vec, theta):
 # 期待最小費用行列を作成する関数(起点×目的のノード)
 def calc_expected_minCost_mat(weight_mat):
 
-    exp_minCost = np.eye(weight_mat.shape[0])
+    num_vec = weight_mat.shape[0]
+    data = np.ones(num_vec)
+    row = np.arange(num_vec)
+    col = np.arange(num_vec)
+
+    exp_minCost = sparse.csr_matrix((data, (row, col)))
+
     temp_exp_minCost = exp_minCost.copy()
 
     while np.max(temp_exp_minCost) > 0.0:
