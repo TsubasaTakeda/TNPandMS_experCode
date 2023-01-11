@@ -90,7 +90,7 @@ def LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root):
         # 車両側のOD需要を追加
         for veh_num in veh_info.keys():
             for orig_node_id in range(veh_info[veh_num].veh_tripsMat.shape[0]):
-                temp_b_eq = veh_info[veh_num].veh_tripsMat[orig_node_id].copy()
+                temp_b_eq = veh_info[veh_num].veh_tripsMat.getrow(orig_node_id).toarray()[0]
                 temp_b_eq[orig_node_id] = - np.sum(temp_b_eq)
                 b_eq = np.hstack([b_eq, temp_b_eq])
 
@@ -98,7 +98,7 @@ def LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root):
         # 利用者側のOD需要を追加
         for user_num in user_info.keys():
             for orig_node_id in range(user_info[user_num].user_tripsMat.shape[0]):
-                temp_b_eq = user_info[user_num].user_tripsMat[orig_node_id]
+                temp_b_eq = user_info[user_num].user_tripsMat.getrow(orig_node_id).toarray()[0]
                 temp_b_eq[orig_node_id] = - np.sum(temp_b_eq)
                 b_eq = np.hstack([b_eq, temp_b_eq])
 
@@ -352,8 +352,10 @@ def LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root):
 
                 term_incMat = veh_info[veh_num].veh_term_incMat
 
-                tripsMat = np.reshape(veh_info[veh_num].veh_tripsMat[orig_node_index], (1, term_incMat.shape[0]))
-                init_incMat = np.reshape(veh_info[veh_num].veh_init_incMat[orig_node_index], (1, term_incMat.shape[1]))
+                # tripsMat = np.reshape(veh_info[veh_num].veh_tripsMat[orig_node_index], (1, term_incMat.shape[0]))
+                # init_incMat = np.reshape(veh_info[veh_num].veh_init_incMat[orig_node_index], (1, term_incMat.shape[1]))
+                tripsMat = veh_info[veh_num].veh_tripsMat[orig_node_index]
+                init_incMat = veh_info[veh_num].veh_init_incMat[orig_node_index]
 
                 temp_veh_linkFlow = logit.trans_linkMat_to_linkVec(tripsMat, init_incMat, term_incMat)
 
@@ -366,8 +368,10 @@ def LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root):
 
                 term_incMat = user_info[user_num].user_term_incMat
 
-                tripsMat = np.reshape(user_info[user_num].user_tripsMat[orig_node_index], (1, term_incMat.shape[0]))
-                init_incMat = np.reshape(user_info[user_num].user_init_incMat[orig_node_index], (1, term_incMat.shape[1]))
+                # tripsMat = np.reshape(user_info[user_num].user_tripsMat[orig_node_index], (1, term_incMat.shape[0]))
+                # init_incMat = np.reshape(user_info[user_num].user_init_incMat[orig_node_index], (1, term_incMat.shape[1]))
+                tripsMat = user_info[user_num].user_tripsMat[orig_node_index]
+                init_incMat = user_info[user_num].user_init_incMat[orig_node_index]
 
                 temp_user_linkFlow = logit.trans_linkMat_to_linkVec(tripsMat, init_incMat, term_incMat)
 
@@ -392,7 +396,7 @@ def LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root):
     frankw.set_B_eq(B_eq)
     frankw.set_b_eq(b_eq)
     frankw.set_lb(0.0)
-    frankw.set_conv_judge(0.01)
+    frankw.set_conv_judge(0.00001)
     frankw.set_output_iter(1)
     frankw.set_output_root(output_root)
     frankw.exect_FW()
