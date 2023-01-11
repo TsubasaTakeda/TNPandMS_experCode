@@ -89,9 +89,19 @@ def calc_expected_minCost_mat(weight_mat):
 # 期待最小費用からリンクの条件付き選択確率を計算する関数
 def calc_choPer(weight_mat, exp_minCost, orig_node_id):
 
-    temp_minCost_vec = np.reshape(exp_minCost[orig_node_id], (exp_minCost.shape[0], 1))
-    per_nume = np.multiply(temp_minCost_vec, weight_mat)
-    per_mat = np.divide(per_nume, temp_minCost_vec.T, out=np.zeros_like(per_nume), where=temp_minCost_vec.T != 0)
+    temp_minCost_vec = exp_minCost[orig_node_id, :]
+    data = temp_minCost_vec.data
+    row = temp_minCost_vec.indices
+    col = temp_minCost_vec.indices
+
+    temp_mat = sparse.csr_matrix((data, (row, col)))
+    per_nume = temp_mat @ weight_mat
+
+    # ここはもう少し効率化できそう
+    per_mat = np.divide(per_nume.toarray(), temp_minCost_vec.toarray(), out=np.zeros_like(per_nume.toarray()), where=temp_minCost_vec.toarray() != 0)
+    per_mat = sparse.csr_matrix(per_mat)
+
+    # print(np.sum(per_mat, axis=0))
 
     return per_mat
 
@@ -122,13 +132,9 @@ def calc_linkFlow(per_mat, nodeFlow):
 # ロジット配分を計算する関数
 def LOGIT(cost_vec, tripsMat, init_incMat, term_incMat, theta):
 
-    start_time = time.process_time()
-
     link_weight = make_link_weight(cost_vec, theta)
     weight_mat = trans_linkVec_to_linkMat(link_weight, init_incMat, term_incMat)
     exp_minCost = calc_expected_minCost_mat(weight_mat)
-
-    print(time.process_time() - start_time)
 
     total_link_flow = np.zeros(shape = (init_incMat.shape[0], init_incMat.shape[0]))
     
