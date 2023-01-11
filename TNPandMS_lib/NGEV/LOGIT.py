@@ -105,7 +105,7 @@ def calc_choPer(weight_mat, exp_minCost, orig_node_id):
 
     return per_mat
 
-# ノードフローを計算する関数
+# ノードフローを計算する関数(demandをスパース行列にすると早そう)
 def calc_nodeFlow(per_mat, demand):
 
     num_vec = per_mat.shape[0]
@@ -120,15 +120,18 @@ def calc_nodeFlow(per_mat, demand):
         temp_per_mat = temp_per_mat @ per_mat
         node_per_mat += temp_per_mat
 
-    nodeFlow = node_per_mat @ demand
+    nodeFlow = (node_per_mat @ demand.T).T
 
     return nodeFlow
 
 # リンクフローを計算する関数
 def calc_linkFlow(per_mat, nodeFlow):
+    
+    # temp_nodeFlow = np.reshape(nodeFlow.toarray(), (1, per_mat.shape[1]))
+    # linkFlow = np.multiply(temp_nodeFlow, per_mat)
 
-    temp_nodeFlow = np.reshape(nodeFlow, (1, per_mat.shape[1]))
-    linkFlow = np.multiply(temp_nodeFlow, per_mat)
+    # ここはもう少し速くできそう
+    linkFlow = np.multiply(nodeFlow.toarray(), per_mat.toarray())
 
     return linkFlow
 
@@ -180,7 +183,7 @@ def LOGIT_cost(cost_vec, tripsMat, init_incMat, term_incMat, theta):
     weight_mat = trans_linkVec_to_linkMat(link_weight, init_incMat, term_incMat)
     exp_minCost = calc_expected_minCost_mat(weight_mat)
 
-    temp_exp_minCost = - np.log(exp_minCost, out=np.zeros_like(exp_minCost), where=exp_minCost != 0) / theta
+    temp_exp_minCost = - np.log(exp_minCost.toarray(), out=np.zeros_like(exp_minCost.toarray()), where=exp_minCost.toarray() != 0) / theta
 
     num_origin_node = tripsMat.shape[0]
 
@@ -241,6 +244,7 @@ if __name__ == '__main__':
             
             # tripsを行列形式に変換
             veh_tripsMat[int(file)] = make_tripsMat(veh_trips[int(file)], int(veh_num_zones[int(file)]/2), int(veh_num_nodes[int(file)]))
+            veh_tripsMat[int(file)] = sparse.csr_matrix(veh_tripsMat[int(file)])
             # for orig_node in veh_trips[int(file)].keys():
             #     for dest_node in veh_trips[int(file)][orig_node].keys():
             #         veh_tripsMat[int(file)][orig_node-1, dest_node-1] = veh_trips[int(file)][orig_node][dest_node]
@@ -280,6 +284,7 @@ if __name__ == '__main__':
 
             # tripsを行列形式に変換
             user_tripsMat[int(file)] = make_tripsMat(user_trips[int(file)], int(user_num_zones[int(file)]/2), int(user_num_nodes[int(file)]))
+            user_tripsMat[int(file)] = sparse.csr_matrix(user_tripsMat[int(file)])
 
         del user_links
         del user_trips
