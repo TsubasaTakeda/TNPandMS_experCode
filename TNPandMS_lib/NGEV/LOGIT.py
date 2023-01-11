@@ -170,8 +170,8 @@ if __name__ == '__main__':
 
     import os
 
-    net_name = 'Sample'
-    scenarios = ['Scenario_2']
+    net_name = 'GridNet_25'
+    scenarios = ['Scenario_0']
 
     for scene in scenarios:
 
@@ -197,10 +197,10 @@ if __name__ == '__main__':
         veh_term_incMat = {}
         veh_costVec = {}
         for file in veh_files:
-            veh_links[int(file)] = rn.read_net(veh_root + '\\' + file + '\Sample_vir_net.tntp')
-            veh_trips[int(file)] = rn.read_trips(veh_root + '\\' + file + '\Sample_vir_trips.tntp')
-            veh_num_zones[int(file)] = rn.read_num_zones(user_root + '\\' + file + '\Sample_vir_net.tntp')
-            veh_num_nodes[int(file)] = rn.read_num_nodes(veh_root + '\\' + file + '\Sample_vir_net.tntp')
+            veh_links[int(file)] = rn.read_net(veh_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
+            veh_trips[int(file)] = rn.read_trips(veh_root + '\\' + file + '\\netname_vir_trips.tntp'.replace('netname', net_name))
+            veh_num_zones[int(file)] = rn.read_num_zones(user_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
+            veh_num_nodes[int(file)] = rn.read_num_nodes(veh_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
 
             # # links の要らない情報を削除
             # keys = veh_links[int(file)].columns
@@ -237,10 +237,10 @@ if __name__ == '__main__':
         user_term_incMat = {}
         user_costVec = {}
         for file in user_files:
-            user_links[int(file)] = rn.read_net(user_root + '\\' + file + '\Sample_vir_net.tntp')
-            user_trips[int(file)] = rn.read_trips(user_root + '\\' + file + '\Sample_vir_trips.tntp')
-            user_num_zones[int(file)] = rn.read_num_zones(user_root + '\\' + file + '\Sample_vir_net.tntp')
-            user_num_nodes[int(file)] = rn.read_num_nodes(user_root + '\\' + file + '\Sample_vir_net.tntp')
+            user_links[int(file)] = rn.read_net(user_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
+            user_trips[int(file)] = rn.read_trips(user_root + '\\' + file + '\\netname_vir_trips.tntp'.replace('netname', net_name))
+            user_num_zones[int(file)] = rn.read_num_zones(user_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
+            user_num_nodes[int(file)] = rn.read_num_nodes(user_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
 
             # # links の要らない情報を削除
             # keys = user_links[int(file)].columns
