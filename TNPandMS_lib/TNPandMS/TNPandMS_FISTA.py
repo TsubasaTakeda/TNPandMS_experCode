@@ -193,6 +193,36 @@ def LOGIT_TNPandMS_FISTA(veh_info, user_info, TNP_capa, output_root):
 
         return conv, para_time + (end_time - start_time), total_time + (end_time-start_time)
 
+    def solPrice_to_solFlow(solPrice):
+        
+        num_TNPconst = veh_info[list(veh_info.keys())[0]].TNP_constMat.shape[0]
+        now_sol_TNP = sol[:num_TNPconst]
+        now_sol_MS = sol[num_TNPconst:]
+
+        solFlow = np.array([])
+
+        # 車両側のフローを計算
+        for veh_num in veh_info.keys():
+            
+            # 現在の各リンクコストを計算し，costとしてlinksに代入
+            costVec = veh_info[veh_num].veh_costVec + now_sol_TNP @ veh_info[veh_num].TNP_constMat - now_sol_MS @ veh_info[veh_num].MSV_constMat
+
+            # ロジット配分を計算
+            logit_flow = logit.LOGIT_perOrig(costVec, veh_info[veh_num].veh_tripsMat, veh_info[veh_num].veh_init_incMat, veh_info[veh_num].veh_term_incMat, veh_info[veh_num].theta)
+            logit_flow = np.reshape(logit_flow, (logit_flow.shape[0], 1))
+            
+            solFlow = np.hstack([solFlow, logit_flow])
+
+        # 利用者側のフローを計算
+        for user_num in user_info.keys():
+
+            costVec = user_info[user_num].user_costVec + now_sol_MS @ user_info[user_num].MSU_constMat
+            logit_flow = logit.LOGIT(costVec, user_info[user_num].user_tripsMat, user_info[user_num].user_init_incMat, user_info[user_num].user_term_incMat, user_info[user_num].theta)
+            
+            solFlow = np.hstack([solFlow, logit_flow])
+
+        return solFlow
+
     # 初期解の設定
     num_TNPconst = veh_info[list(veh_info.keys())[0]].TNP_constMat.shape[0]
     num_MSconst = veh_info[list(veh_info.keys())[0]].MSV_constMat.shape[0]
@@ -221,10 +251,15 @@ def LOGIT_TNPandMS_FISTA(veh_info, user_info, TNP_capa, output_root):
     fista.set_conv_func(conv_func)
     fista.set_lips_init(total_flow / num_MSconst * max_cost)
     fista.set_back_para(1.1)
-    fista.set_conv_judge(0.0001)
+    fista.set_conv_judge(0.1)
     fista.set_output_iter(1)
     fista.set_output_root(output_root)
     fista.exect_FISTA_proj_back()
+
+    # 解でのフローを計算
+    solPrice = fista.sol
+    solFlow = solPrice_to_solFlow(solPrice)
+    np.savetxt(os.path.join(output_root, 'solFlow.csv'), solFlow)
 
     # print('\n\n')
 
