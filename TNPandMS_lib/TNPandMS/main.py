@@ -50,7 +50,7 @@ dir_name = '_sampleData'
 networks = ['GridNet_4']
 scenarios = ['Scenario_0']
 # algorithms = ['TNPandMS_FISTA', 'TNPandMS_MSA', 'TNPandMS_PL', 'TNPandMS_FW']
-algorithms = ['TNPandMS_FW']
+algorithms = ['TNPandMS_MSA']
 
 
 for net_name in networks:

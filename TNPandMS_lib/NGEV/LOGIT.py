@@ -43,7 +43,7 @@ def make_term_incMat(links, num_nodes):
 def trans_linkMat_to_linkVec(linkMat, init_incMat, term_incMat):
 
     temp_linkMat = init_incMat.T @ linkMat @ term_incMat
-    linkVec = np.diag(temp_linkMat.toarray())
+    linkVec = np.diag(temp_linkMat)
 
     return linkVec
 
