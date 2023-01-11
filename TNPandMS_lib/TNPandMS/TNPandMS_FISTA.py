@@ -11,6 +11,7 @@ from scipy import sparse
 import time
 import numpy as np
 import pandas as pd
+import os
 
 
 class VEH_INFO:
@@ -196,8 +197,8 @@ def LOGIT_TNPandMS_FISTA(veh_info, user_info, TNP_capa, output_root):
     def solPrice_to_solFlow(solPrice):
         
         num_TNPconst = veh_info[list(veh_info.keys())[0]].TNP_constMat.shape[0]
-        now_sol_TNP = sol[:num_TNPconst]
-        now_sol_MS = sol[num_TNPconst:]
+        solPrice_TNP = solPrice[:num_TNPconst]
+        solPrice_MS = solPrice[num_TNPconst:]
 
         solFlow = np.array([])
 
@@ -205,20 +206,17 @@ def LOGIT_TNPandMS_FISTA(veh_info, user_info, TNP_capa, output_root):
         for veh_num in veh_info.keys():
             
             # 現在の各リンクコストを計算し，costとしてlinksに代入
-            costVec = veh_info[veh_num].veh_costVec + now_sol_TNP @ veh_info[veh_num].TNP_constMat - now_sol_MS @ veh_info[veh_num].MSV_constMat
+            costVec = veh_info[veh_num].veh_costVec + solPrice_TNP @ veh_info[veh_num].TNP_constMat - solPrice_MS @ veh_info[veh_num].MSV_constMat
 
             # ロジット配分を計算
             logit_flow = logit.LOGIT_perOrig(costVec, veh_info[veh_num].veh_tripsMat, veh_info[veh_num].veh_init_incMat, veh_info[veh_num].veh_term_incMat, veh_info[veh_num].theta)
-            logit_flow = np.reshape(logit_flow, (logit_flow.shape[0], 1))
-            
             solFlow = np.hstack([solFlow, logit_flow])
 
         # 利用者側のフローを計算
         for user_num in user_info.keys():
 
-            costVec = user_info[user_num].user_costVec + now_sol_MS @ user_info[user_num].MSU_constMat
-            logit_flow = logit.LOGIT(costVec, user_info[user_num].user_tripsMat, user_info[user_num].user_init_incMat, user_info[user_num].user_term_incMat, user_info[user_num].theta)
-            
+            costVec = user_info[user_num].user_costVec + solPrice_MS @ user_info[user_num].MSU_constMat
+            logit_flow = logit.LOGIT_perOrig(costVec, user_info[user_num].user_tripsMat, user_info[user_num].user_init_incMat, user_info[user_num].user_term_incMat, user_info[user_num].theta)
             solFlow = np.hstack([solFlow, logit_flow])
 
         return solFlow

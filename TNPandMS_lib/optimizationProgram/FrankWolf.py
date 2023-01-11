@@ -276,10 +276,10 @@ class FrankWolf:
         add_df = pd.DataFrame([[iteration, para_time, total_time, now_obj, now_conv, num_call_obj, num_call_nbl]], columns=output_data.columns)
         output_data = output_data.append(add_df)
         self.output_data = output_data
-        if iteration % self.output_iter != 0:
-            if self.output_root != null:
-                output_data.to_csv(os.path.join(self.output_root, 'result.csv'))
+        if self.output_root != null:
             np.savetxt(os.path.join(self.output_root, 'sol.csv'), self.sol)
+            if iteration % self.output_iter != 0:
+                output_data.to_csv(os.path.join(self.output_root, 'result.csv'))
 
         print('finish Frank-Wolf')
 
