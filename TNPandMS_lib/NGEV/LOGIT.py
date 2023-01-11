@@ -43,7 +43,7 @@ def make_term_incMat(links, num_nodes):
 def trans_linkMat_to_linkVec(linkMat, init_incMat, term_incMat):
 
     temp_linkMat = init_incMat.T @ linkMat @ term_incMat
-    linkVec = np.diag(temp_linkMat)
+    linkVec = np.diag(temp_linkMat.toarray())
 
     return linkVec
 
@@ -132,6 +132,7 @@ def calc_linkFlow(per_mat, nodeFlow):
 
     # ここはもう少し速くできそう
     linkFlow = np.multiply(nodeFlow.toarray(), per_mat.toarray())
+    linkFlow = sparse.csr_matrix(linkFlow)
 
     return linkFlow
 
@@ -142,8 +143,9 @@ def LOGIT(cost_vec, tripsMat, init_incMat, term_incMat, theta):
     weight_mat = trans_linkVec_to_linkMat(link_weight, init_incMat, term_incMat)
     exp_minCost = calc_expected_minCost_mat(weight_mat)
 
-    total_link_flow = np.zeros(shape = (init_incMat.shape[0], init_incMat.shape[0]))
-    
+    # total_link_flow = np.zeros(shape = (init_incMat.shape[0], init_incMat.shape[0]))
+    total_link_flow = sparse.csr_matrix(([], ([], [])), shape=(init_incMat.shape[0], init_incMat.shape[0]))
+
     for orig_node_id in range(tripsMat.shape[0]):
 
         per_mat = calc_choPer(weight_mat, exp_minCost, orig_node_id)

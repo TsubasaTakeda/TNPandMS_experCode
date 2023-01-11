@@ -118,11 +118,14 @@ def NGEV_CC_MS(user_info, MS_capa):
 
     def conv_func(now_sol):
         [now_nbl, para_time, total_time] = nbl_func(now_sol)
+        conv_vec = now_sol * now_nbl
         start_time = time.process_time()
-        if np.min(now_nbl) > 0:
-            conv = 0.0
+        conv_max = np.max(conv_vec)
+        conv_min = np.min(conv_vec)
+        if conv_max > -conv_min:
+            conv = conv_max
         else:
-            conv = -np.min(now_nbl)
+            conv = -conv_min
         end_time = time.process_time()
         return conv, para_time + (end_time - start_time), total_time + (end_time-start_time)
 
@@ -133,7 +136,7 @@ def NGEV_CC_MS(user_info, MS_capa):
     num_MSconst = user_info[list(user_info.keys())[0]].MSU_constMat.shape[0]
     sol_init = np.zeros(num_MSconst)
     
-    total_flow = np.sum(list(user_info[list(user_info.keys())[0]].user_tripsMat))
+    total_flow = np.sum(list(user_info[list(user_info.keys())[0]].user_tripsMat.toarray()))
     max_cost = np.max(list(user_info[list(user_info.keys())[0]].user_costVec))
 
     fista = ag.FISTA_PROJ_BACK()
@@ -245,11 +248,14 @@ def NGEV_CC_TNP(veh_info, TNP_capa, temp_info):
 
     def conv_func(now_sol):
         [now_nbl, para_time, total_time] = nbl_func(now_sol)
+        conv_vec = now_sol * now_nbl
         start_time = time.process_time()
-        if np.min(now_nbl) > 0:
-            conv = 0.0
+        conv_max = np.max(conv_vec)
+        conv_min = np.min(conv_vec)
+        if conv_max > -conv_min:
+            conv = conv_max
         else:
-            conv = -np.min(now_nbl)
+            conv = -conv_min
         end_time = time.process_time()
         return conv, para_time + (end_time - start_time), total_time + (end_time-start_time)
 
@@ -260,7 +266,7 @@ def NGEV_CC_TNP(veh_info, TNP_capa, temp_info):
     num_TNPconst = veh_info[list(veh_info.keys())[0]].TNP_constMat.shape[0]
     sol_init = np.zeros(num_TNPconst)
     
-    total_flow = np.sum(list(veh_info[list(veh_info.keys())[0]].veh_tripsMat))
+    total_flow = np.sum(list(veh_info[list(veh_info.keys())[0]].veh_tripsMat.toarray()))
     max_cost = np.max(list(veh_info[list(veh_info.keys())[0]].veh_costVec))
 
     fista = ag.FISTA_PROJ_BACK()
@@ -432,14 +438,11 @@ def LOGIT_TNPandMS_MSA(veh_info, user_info, TNP_capa, temp_info, output_root):
 
             for orig_node_index in range(veh_info[veh_num].veh_tripsMat.shape[0]):
 
+                tripsMat = veh_info[veh_num].veh_tripsMat[orig_node_index]
+                init_incMat = veh_info[veh_num].veh_init_incMat[orig_node_index]
                 term_incMat = veh_info[veh_num].veh_term_incMat
 
-                tripsMat = np.reshape(veh_info[veh_num].veh_tripsMat[orig_node_index], (1, term_incMat.shape[0]))
-                init_incMat = np.reshape(veh_info[veh_num].veh_init_incMat[orig_node_index], (1, term_incMat.shape[1]))
-
                 temp_veh_linkFlow = logit.trans_linkMat_to_linkVec(tripsMat, init_incMat, term_incMat)
-
-                # print(temp_veh_linkFlow)
 
                 init_vehFlow = np.hstack([init_vehFlow, temp_veh_linkFlow])
 

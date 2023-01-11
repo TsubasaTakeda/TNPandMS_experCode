@@ -225,14 +225,14 @@ class MSA:
         self.num_call_dir = num_call_dir
         self.sol_obj = now_obj
 
-        
-        add_df = pd.DataFrame([[iteration, para_time, total_time, now_obj, now_conv, num_call_obj, num_call_dir]], columns=output_data.columns)
-        output_data = output_data.append(add_df)
-        self.output_data = output_data
-        if iteration % self.output_iter != 0:
-            if self.output_root != null:
+        if self.output_root != null:
+            np.savetxt(os.path.join(self.output_root, 'sol.csv'), self.sol)
+            if iteration % self.output_iter != 0:
+                add_df = pd.DataFrame([[iteration, para_time, total_time, now_obj, now_conv, num_call_obj, num_call_dir]], columns=output_data.columns)
+                output_data = output_data.append(add_df)
                 output_data.to_csv(os.path.join(self.output_root, 'result.csv'))
-                np.savetxt(os.path.join(self.output_root, 'sol.csv'), self.sol)
+
+        self.output_data = output_data
 
         print('finish MSA')
 
@@ -412,13 +412,13 @@ class PL:
         self.sol_obj = now_obj
 
         
-        add_df = pd.DataFrame([[iteration, para_time, total_time, now_obj, now_conv, num_call_obj, num_call_dir]], columns=output_data.columns)
-        output_data = output_data.append(add_df)
-        self.output_data = output_data
-        if iteration % self.output_iter != 0:
-            if self.output_root != null:
+        if self.output_root != null:
+            np.savetxt(os.path.join(self.output_root, 'sol.csv'), self.sol)
+            if iteration % self.output_iter != 0:
+                add_df = pd.DataFrame([[iteration, para_time, total_time, now_obj, now_conv, num_call_obj, num_call_dir]], columns=output_data.columns)
+                output_data = output_data.append(add_df)
+                self.output_data = output_data
                 output_data.to_csv(os.path.join(self.output_root, 'result.csv'))
-                np.savetxt(os.path.join(self.output_root, 'sol.csv'), self.sol)
 
         print('finish PL')
 
