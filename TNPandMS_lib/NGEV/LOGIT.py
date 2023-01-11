@@ -50,7 +50,11 @@ def trans_linkMat_to_linkVec(linkMat, init_incMat, term_incMat):
 # ベクトル形式のリンク情報を行列形式に変換する関数
 def trans_linkVec_to_linkMat(linkVec, init_incMat, term_incMat):
 
-    temp_linkMat = np.diag(linkVec)
+    num_vec = linkVec.shape[0]
+    row = np.arange(num_vec)
+    col = np.arange(num_vec)
+
+    temp_linkMat = sparse.csr_matrix((linkVec, (row, col)))
 
     linkMat = init_incMat @ temp_linkMat @ term_incMat.T
 
@@ -66,7 +70,13 @@ def make_link_weight(cost_vec, theta):
 # 期待最小費用行列を作成する関数(起点×目的のノード)
 def calc_expected_minCost_mat(weight_mat):
 
-    exp_minCost = np.eye(weight_mat.shape[0])
+    num_vec = weight_mat.shape[0]
+    data = np.ones(num_vec)
+    row = np.arange(num_vec)
+    col = np.arange(num_vec)
+
+    exp_minCost = sparse.csr_matrix((data, (row, col)))
+
     temp_exp_minCost = exp_minCost.copy()
 
     while np.max(temp_exp_minCost) > 0.0:
@@ -79,33 +89,49 @@ def calc_expected_minCost_mat(weight_mat):
 # 期待最小費用からリンクの条件付き選択確率を計算する関数
 def calc_choPer(weight_mat, exp_minCost, orig_node_id):
 
-    temp_minCost_vec = np.reshape(exp_minCost[orig_node_id], (exp_minCost.shape[0], 1))
-    per_nume = np.multiply(temp_minCost_vec, weight_mat)
-    per_mat = np.divide(per_nume, temp_minCost_vec.T, out=np.zeros_like(per_nume), where=temp_minCost_vec.T != 0)
+    temp_minCost_vec = exp_minCost[orig_node_id, :]
+    data = temp_minCost_vec.data
+    row = temp_minCost_vec.indices
+    col = temp_minCost_vec.indices
+
+    temp_mat = sparse.csr_matrix((data, (row, col)))
+    per_nume = temp_mat @ weight_mat
+
+    # ここはもう少し効率化できそう
+    per_mat = np.divide(per_nume.toarray(), temp_minCost_vec.toarray(), out=np.zeros_like(per_nume.toarray()), where=temp_minCost_vec.toarray() != 0)
+    per_mat = sparse.csr_matrix(per_mat)
+
+    # print(np.sum(per_mat, axis=0))
 
     return per_mat
 
-# ノードフローを計算する関数
+# ノードフローを計算する関数(demandをスパース行列にすると早そう)
 def calc_nodeFlow(per_mat, demand):
 
-    node_per_mat = np.eye(per_mat.shape[0])
-    temp_per_mat = node_per_mat.copy()
-    # print(np.diag(temp_per_mat))
+    num_vec = per_mat.shape[0]
+    data = np.ones(num_vec)
+    row_col = np.arange(num_vec)
+
+    node_per_mat = sparse.csr_matrix((data, (row_col, row_col)))
+    temp_per_mat = sparse.csr_matrix((data, (row_col, row_col)))
 
     while np.max(temp_per_mat) > 0.0:
 
         temp_per_mat = temp_per_mat @ per_mat
         node_per_mat += temp_per_mat
 
-    nodeFlow = node_per_mat @ demand
+    nodeFlow = (node_per_mat @ demand.T).T
 
     return nodeFlow
 
 # リンクフローを計算する関数
 def calc_linkFlow(per_mat, nodeFlow):
+    
+    # temp_nodeFlow = np.reshape(nodeFlow.toarray(), (1, per_mat.shape[1]))
+    # linkFlow = np.multiply(temp_nodeFlow, per_mat)
 
-    temp_nodeFlow = np.reshape(nodeFlow, (1, per_mat.shape[1]))
-    linkFlow = np.multiply(temp_nodeFlow, per_mat)
+    # ここはもう少し速くできそう
+    linkFlow = np.multiply(nodeFlow.toarray(), per_mat.toarray())
 
     return linkFlow
 
@@ -157,7 +183,7 @@ def LOGIT_cost(cost_vec, tripsMat, init_incMat, term_incMat, theta):
     weight_mat = trans_linkVec_to_linkMat(link_weight, init_incMat, term_incMat)
     exp_minCost = calc_expected_minCost_mat(weight_mat)
 
-    temp_exp_minCost = - np.log(exp_minCost, out=np.zeros_like(exp_minCost), where=exp_minCost != 0) / theta
+    temp_exp_minCost = - np.log(exp_minCost.toarray(), out=np.zeros_like(exp_minCost.toarray()), where=exp_minCost.toarray() != 0) / theta
 
     num_origin_node = tripsMat.shape[0]
 
@@ -170,8 +196,8 @@ if __name__ == '__main__':
 
     import os
 
-    net_name = 'Sample'
-    scenarios = ['Scenario_2']
+    net_name = 'GridNet_25'
+    scenarios = ['Scenario_0']
 
     for scene in scenarios:
 
@@ -183,7 +209,7 @@ if __name__ == '__main__':
 
 
         # 時空間ネットワークを読み込む
-        TS_links = rn.read_net(os.path.join(root, '..', '_sampleData', net_name, scene, 'TS_net', 'Sample_ts_net.tntp'))
+        TS_links = rn.read_net(os.path.join(root, '..', '_sampleData', net_name, scene, 'TS_net', 'netname_ts_net.tntp'.replace('netname', net_name)))
         # print(TS_links)
 
 
@@ -197,10 +223,10 @@ if __name__ == '__main__':
         veh_term_incMat = {}
         veh_costVec = {}
         for file in veh_files:
-            veh_links[int(file)] = rn.read_net(veh_root + '\\' + file + '\Sample_vir_net.tntp')
-            veh_trips[int(file)] = rn.read_trips(veh_root + '\\' + file + '\Sample_vir_trips.tntp')
-            veh_num_zones[int(file)] = rn.read_num_zones(user_root + '\\' + file + '\Sample_vir_net.tntp')
-            veh_num_nodes[int(file)] = rn.read_num_nodes(veh_root + '\\' + file + '\Sample_vir_net.tntp')
+            veh_links[int(file)] = rn.read_net(veh_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
+            veh_trips[int(file)] = rn.read_trips(veh_root + '\\' + file + '\\netname_vir_trips.tntp'.replace('netname', net_name))
+            veh_num_zones[int(file)] = rn.read_num_zones(user_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
+            veh_num_nodes[int(file)] = rn.read_num_nodes(veh_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
 
             # # links の要らない情報を削除
             # keys = veh_links[int(file)].columns
@@ -218,6 +244,7 @@ if __name__ == '__main__':
             
             # tripsを行列形式に変換
             veh_tripsMat[int(file)] = make_tripsMat(veh_trips[int(file)], int(veh_num_zones[int(file)]/2), int(veh_num_nodes[int(file)]))
+            veh_tripsMat[int(file)] = sparse.csr_matrix(veh_tripsMat[int(file)])
             # for orig_node in veh_trips[int(file)].keys():
             #     for dest_node in veh_trips[int(file)][orig_node].keys():
             #         veh_tripsMat[int(file)][orig_node-1, dest_node-1] = veh_trips[int(file)][orig_node][dest_node]
@@ -237,10 +264,10 @@ if __name__ == '__main__':
         user_term_incMat = {}
         user_costVec = {}
         for file in user_files:
-            user_links[int(file)] = rn.read_net(user_root + '\\' + file + '\Sample_vir_net.tntp')
-            user_trips[int(file)] = rn.read_trips(user_root + '\\' + file + '\Sample_vir_trips.tntp')
-            user_num_zones[int(file)] = rn.read_num_zones(user_root + '\\' + file + '\Sample_vir_net.tntp')
-            user_num_nodes[int(file)] = rn.read_num_nodes(user_root + '\\' + file + '\Sample_vir_net.tntp')
+            user_links[int(file)] = rn.read_net(user_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
+            user_trips[int(file)] = rn.read_trips(user_root + '\\' + file + '\\netname_vir_trips.tntp'.replace('netname', net_name))
+            user_num_zones[int(file)] = rn.read_num_zones(user_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
+            user_num_nodes[int(file)] = rn.read_num_nodes(user_root + '\\' + file + '\\netname_vir_net.tntp'.replace('netname', net_name))
 
             # # links の要らない情報を削除
             # keys = user_links[int(file)].columns
@@ -257,6 +284,7 @@ if __name__ == '__main__':
 
             # tripsを行列形式に変換
             user_tripsMat[int(file)] = make_tripsMat(user_trips[int(file)], int(user_num_zones[int(file)]/2), int(user_num_nodes[int(file)]))
+            user_tripsMat[int(file)] = sparse.csr_matrix(user_tripsMat[int(file)])
 
         del user_links
         del user_trips

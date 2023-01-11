@@ -1,4 +1,4 @@
-# import gurobipy as gp
+import gurobipy as gp
 import numpy as np
 import time
 from sqlalchemy import null
@@ -8,7 +8,7 @@ from sqlalchemy import null
 # min c x
 # s.t., B x <= b, 
 #       B_eq x = b_eq
-def linprog(c, B = null, b = null, B_eq = null, b_eq = null):
+def linprog(c, B = null, b = null, B_eq = null, b_eq = null, lb = null, ub = null):
 
     if B is not null:
         if len(c) != B.shape[1]:
@@ -21,7 +21,7 @@ def linprog(c, B = null, b = null, B_eq = null, b_eq = null):
             print('B.shape: ', B.shape)
             print('b.shpae: ', b.shape)
             return -1
-    elif B_eq is not null:
+    if B_eq is not null:
         if len(c) != B_eq.shape[1]:
             print('目的関数の係数ベクトルcと，制約条件の係数行列B_eqについて，変数の数が合っていません．')
             print('c.shape: ', c.shape)
@@ -39,18 +39,29 @@ def linprog(c, B = null, b = null, B_eq = null, b_eq = null):
     model = gp.Model(name="Sample")
 
     # 変数の宣言
-    x = {i: model.addVar() for i in range(len(c))}
+    # x = {i: model.addVar() for i in range(len(c))}
+    if (lb is not null) and (ub is not null):
+        x = model.addMVar(c.shape[0], lb=lb, ub=ub)
+    elif lb is not null:
+        x = model.addMVar(c.shape[0], lb=lb)
+    elif ub is not null:
+        x = model.addMVar(c.shape[0], ub=ub)
+    else:
+        x = model.addMVar(c.shape[0])
 
     # 目的関数の設定
-    model.setObjective(gp.quicksum(c[i]*x[i] for i in range(len(c))), gp.GRB.MINIMIZE)
+    # model.setObjective(gp.quicksum(c[i]*x[i] for i in range(len(c))), gp.GRB.MINIMIZE)
+    model.setObjective(c@x, gp.GRB.MINIMIZE)
 
     # 制約条件の設定
-    if B is not null:
-        for i in range(B.shape[0]):
-            model.addConstr(gp.quicksum(B[i, j] * x[j] for j in range(B.shape[1])) <= b[i])
-    if B_eq is not null:
-        for i in range(B_eq.shape[0]):
-            model.addConstr(gp.quicksum(B_eq[i, j] * x[j] for j in range(B_eq.shape[1])) == b_eq[i])
+    model.addConstr(B @ x <= b)
+    model.addConstr(B_eq @ x == b_eq)
+    # if B is not null:
+    #     for i in range(B.shape[0]):
+    #         model.addConstr(gp.quicksum(B[i, j] * x[j] for j in range(B.shape[1])) <= b[i])
+    # if B_eq is not null:
+    #     for i in range(B_eq.shape[0]):
+    #         model.addConstr(gp.quicksum(B_eq[i, j] * x[j] for j in range(B_eq.shape[1])) == b_eq[i])
 
     # 解を求める計算
     print("↓点線の間に、Gurobi Optimizerからログが出力")
@@ -66,7 +77,8 @@ def linprog(c, B = null, b = null, B_eq = null, b_eq = null):
     sol = null
 
     if model.Status == gp.GRB.OPTIMAL:
-        sol = np.array([x[i].X for i in x.keys()])
+        sol = x.X
+
 
     return model, sol, end_time - start_time
 

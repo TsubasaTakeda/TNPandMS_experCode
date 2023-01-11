@@ -1,6 +1,7 @@
 import os
 import sys
 import numpy as np
+from scipy import sparse
 sys.path.append('../Network/')
 sys.path.append('../optimizationProgram/')
 sys.path.append('../Matrix/')
@@ -10,6 +11,8 @@ import readNetwork as rn
 import LOGIT as logit
 import TNPandMS_FISTA as fista
 import TNPandMS_MSA as msa
+import TNPandMS_PL as pl
+import TNPandMS_FW as fw
 
 
 class VEH_INFO:
@@ -43,10 +46,11 @@ class TEMP_INFO:
 
 
 dir_name = '_sampleData'
-networks = ['GridNet_4', 'GridNet_9', 'GridNet_16', 'GridNet_25']
+# networks = ['GridNet_4', 'GridNet_9', 'GridNet_16', 'GridNet_25']
+networks = ['GridNet_25']
 scenarios = ['Scenario_0']
-algorithms = ['TNPandMS_FISTA', 'TNPandMS_MSA']
-# algorithms = ['TNPandMS_MSA']
+# algorithms = ['TNPandMS_FISTA', 'TNPandMS_MSA', 'TNPandMS_PL', 'TNPandMS_FW']
+algorithms = ['TNPandMS_FISTA']
 
 
 for net_name in networks:
@@ -88,6 +92,7 @@ for net_name in networks:
             
             # tripsを行列形式に変換
             veh_tripsMat[int(file)] = logit.make_tripsMat(veh_trips[int(file)], int(veh_num_zones[int(file)]/2), int(veh_num_nodes[int(file)]))
+            veh_tripsMat[int(file)] = sparse.csr_matrix(veh_tripsMat[int(file)])
 
         del veh_links
         del veh_trips
@@ -117,6 +122,7 @@ for net_name in networks:
 
             # tripsを行列形式に変換
             user_tripsMat[int(file)] = logit.make_tripsMat(user_trips[int(file)], int(user_num_zones[int(file)]/2), int(user_num_nodes[int(file)]))
+            user_tripsMat[int(file)] = sparse.csr_matrix(user_tripsMat[int(file)])
 
         del user_links
         del user_trips
@@ -170,3 +176,15 @@ for net_name in networks:
                 output_root = os.path.join(root, '..', dir_name, net_name, scene, 'result', 'MSA_LOGIT')
                 os.makedirs(output_root, exist_ok=True)
                 msa.LOGIT_TNPandMS_MSA(veh_info, user_info, TNP_capa, temp_info, output_root)
+
+            if algo == 'TNPandMS_PL':
+
+                output_root = os.path.join(root, '..', dir_name, net_name, scene, 'result', 'PL_LOGIT')
+                os.makedirs(output_root, exist_ok=True)
+                pl.LOGIT_TNPandMS_PL(veh_info, user_info, TNP_capa, temp_info, output_root)
+
+            if algo == 'TNPandMS_FW':
+
+                output_root = os.path.join(root, '..', dir_name, net_name, scene, 'result', 'FW_LOGIT')
+                os.makedirs(output_root, exist_ok=True)
+                fw.LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root)
