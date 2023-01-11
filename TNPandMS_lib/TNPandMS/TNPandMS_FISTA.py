@@ -7,6 +7,7 @@ import readSparseMat as rsm
 import accelGradient as ag
 import readNetwork as rn
 import LOGIT as logit
+from scipy import sparse
 import time
 import numpy as np
 import pandas as pd
@@ -220,7 +221,7 @@ def LOGIT_TNPandMS_FISTA(veh_info, user_info, TNP_capa, output_root):
     fista.set_conv_func(conv_func)
     fista.set_lips_init(total_flow / num_MSconst * max_cost)
     fista.set_back_para(1.1)
-    fista.set_conv_judge(0.1)
+    fista.set_conv_judge(0.0001)
     fista.set_output_iter(1)
     fista.set_output_root(output_root)
     fista.exect_FISTA_proj_back()
@@ -289,6 +290,7 @@ if __name__ == '__main__':
             
             # tripsを行列形式に変換
             veh_tripsMat[int(file)] = logit.make_tripsMat(veh_trips[int(file)], int(veh_num_zones[int(file)]/2), int(veh_num_nodes[int(file)]))
+            veh_tripsMat[int(file)] = sparse.csr_matrix(veh_tripsMat[int(file)])
 
         del veh_links
         del veh_trips
@@ -318,6 +320,7 @@ if __name__ == '__main__':
 
             # tripsを行列形式に変換
             user_tripsMat[int(file)] = logit.make_tripsMat(user_trips[int(file)], int(user_num_zones[int(file)]/2), int(user_num_nodes[int(file)]))
+            user_tripsMat[int(file)] = sparse.csr_matrix(user_tripsMat[int(file)])
 
         del user_links
         del user_trips

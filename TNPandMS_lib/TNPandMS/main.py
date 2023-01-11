@@ -46,8 +46,8 @@ class TEMP_INFO:
 
 
 dir_name = '_sampleData'
-# networks = ['GridNet_4', 'GridNet_9', 'GridNet_16', 'GridNet_25']
-networks = ['GridNet_25']
+networks = ['GridNet_4', 'GridNet_9', 'GridNet_16', 'GridNet_25']
+# networks = ['GridNet_25']
 scenarios = ['Scenario_0']
 # algorithms = ['TNPandMS_FISTA', 'TNPandMS_MSA', 'TNPandMS_PL', 'TNPandMS_FW']
 algorithms = ['TNPandMS_FISTA']
