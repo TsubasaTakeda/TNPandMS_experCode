@@ -2450,8 +2450,8 @@ if __name__ == '__main__':
 
     import os
 
-    net_name = 'Sample'
-    scenarios = ['Scenario_2', 'Scenario_1', 'Scenario_3', 'Scenario_0']
+    net_name = 'GridNet_36'
+    scenarios = ['Scenario_0']
 
     for scene in scenarios:
 

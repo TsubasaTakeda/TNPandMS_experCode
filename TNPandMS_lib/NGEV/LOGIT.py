@@ -89,6 +89,7 @@ def calc_expected_minCost_mat(weight_mat):
 # 期待最小費用からリンクの条件付き選択確率を計算する関数
 def calc_choPer(weight_mat, exp_minCost, orig_node_id):
 
+
     temp_minCost_vec = exp_minCost[orig_node_id, :]
     data = temp_minCost_vec.data
     row = temp_minCost_vec.indices
@@ -97,11 +98,10 @@ def calc_choPer(weight_mat, exp_minCost, orig_node_id):
     temp_mat = sparse.csr_matrix((data, (row, col)))
     per_nume = temp_mat @ weight_mat
 
+    
     # ここはもう少し効率化できそう
     per_mat = np.divide(per_nume.toarray(), temp_minCost_vec.toarray(), out=np.zeros_like(per_nume.toarray()), where=temp_minCost_vec.toarray() != 0)
     per_mat = sparse.csr_matrix(per_mat)
-
-    # print(np.sum(per_mat, axis=0))
 
     return per_mat
 
@@ -198,7 +198,7 @@ if __name__ == '__main__':
 
     import os
 
-    net_name = 'GridNet_25'
+    net_name = 'GridNet_36'
     scenarios = ['Scenario_0']
 
     for scene in scenarios:
