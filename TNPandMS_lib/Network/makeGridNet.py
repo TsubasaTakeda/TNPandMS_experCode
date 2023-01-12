@@ -99,8 +99,8 @@ if __name__ == '__main__':
     import readNetwork as rn
     import makeODdemand as mod
 
-    num_node = 25
-    num_zones = 25
+    num_node = 36
+    num_zones = 36
     capa_scale = [1000, 5000]
     fft_scale = [5.0, 5.0]
     total_flow = 10000
