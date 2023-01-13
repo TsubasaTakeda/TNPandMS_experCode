@@ -41,7 +41,7 @@ def make_grid_network(num_node, capa_scale, fft_scale = null):
 
         per_grid = int(num_node**(1/2))
 
-        index_list = list(range((per_grid-1) * (per_grid) * 2))
+        index_list = list(range((per_grid-1) * (per_grid) * 2 * 2))
 
         init_node = []
         term_node = []
@@ -54,19 +54,19 @@ def make_grid_network(num_node, capa_scale, fft_scale = null):
             for yoko_index in range(per_grid-1):
 
                 node_num = tate_index*per_grid + yoko_index + 1
-                init_node += [node_num, node_num]
-                term_node += [node_num+1, node_num+per_grid]
+                init_node += [node_num, node_num, node_num+1, node_num+per_grid]
+                term_node += [node_num+1, node_num+per_grid, node_num, node_num]
 
             yoko_index = per_grid-1
             node_num = tate_index*per_grid + yoko_index+1
-            init_node += [node_num]
-            term_node += [node_num + per_grid]
+            init_node += [node_num, node_num + per_grid]
+            term_node += [node_num + per_grid, node_num]
 
         tate_index = per_grid-1
         for yoko_index in range(per_grid-1):
             node_num = tate_index*per_grid + yoko_index + 1
-            init_node += [node_num]
-            term_node += [node_num+1]
+            init_node += [node_num, node_num+1]
+            term_node += [node_num+1, node_num]
 
         # free_flow_time を作成
         if fft_scale == null:
@@ -85,6 +85,11 @@ def make_grid_network(num_node, capa_scale, fft_scale = null):
                 'free_flow_time': fft,
             }, index=index_list
         )
+
+        links.sort_values('init_node', inplace=True)
+        links.reset_index(drop=True, inplace=True)
+
+
 
         return links
 
@@ -122,6 +127,8 @@ if __name__ == '__main__':
 
     # grid_netを作成
     [grid_nodes, grid_links] = make_grid_network(num_node, capa_scale, fft_scale)
+    print(grid_links)
+
     # OD需要を作成
     demand = mod.make_int_trips_random(num_zones, total_flow)
 
