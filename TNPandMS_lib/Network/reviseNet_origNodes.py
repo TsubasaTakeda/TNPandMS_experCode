@@ -1,18 +1,27 @@
 
-def revise_nodes(nodes, orig_nodes):
+def make_orig_incDict(nodes, orig_nodes):
+
+    incDict = {}
+    start_id = 1
+    for i in range(1, len(nodes)+1):
+        if i in orig_nodes:
+            incDict[start_id] = i
+            start_id += 1
+
+    for i in range(1, len(nodes)+1):
+        if i not in list(incDict.values()):
+            incDict[start_id] = i
+            start_id += 1
+
+    return incDict
+
+def revise_nodes(nodes, incDict):
 
     nodes['Node'] = range(1, len(nodes)+1)
 
-    start_index = 1
-    end_index = len(nodes)
     for i in range(1, len(nodes)+1):
-        # nodes.loc[i, 'Node'] = orig_nodes[i-1]
-        if i in orig_nodes:
-            nodes.loc[i, 'Node'] = start_index
-            start_index += 1
-        else:
-            nodes.loc[i, 'Node'] = end_index
-            end_index -= 1 
+        new_i = incDict[i]
+        nodes.loc[new_i, 'Node'] = i
 
     # print(nodes)
 
@@ -21,28 +30,32 @@ def revise_nodes(nodes, orig_nodes):
         
     return nodes
 
-def revise_links(links, orig_nodes):
+def revise_links(links, incDict):
 
-    for i in range(1, len(orig_nodes)+1):
+    links['prev_init_node'] = list(links['init_node'])
+    links['prev_term_node'] = list(links['term_node'])
 
-        link_set_init_i = links[links['init_node'] == i]
-        link_set_term_i = links[links['term_node'] == i]
+    for i in incDict.keys():
 
-        orig_node_id = orig_nodes[i-1]
-        link_set_init_orig = links[links['init_node'] == orig_node_id]
-        link_set_term_orig = links[links['term_node'] == orig_node_id]
+        if incDict[i] == i:
+            continue
 
-        for link_id, link in link_set_init_i.iterrows():
-            links.loc[link_id, 'init_node'] = orig_node_id
-        for link_id, link in link_set_term_i.iterrows():
-            links.loc[link_id, 'term_node'] = orig_node_id
-        for link_id, link in link_set_init_orig.iterrows():
-            links.loc[link_id, 'init_node'] = i
-        for link_id, link in link_set_term_orig.iterrows():
-            links.loc[link_id, 'term_node'] = i
+        prev_node = incDict[i]
+        new_node = i
+
+        link_set_init_prev = links[links['prev_init_node'] == prev_node]
+        link_set_term_prev = links[links['prev_term_node'] == prev_node]
+
+        for link_id, link in link_set_init_prev.iterrows():
+            links.loc[link_id, 'init_node'] = new_node
+        for link_id, link in link_set_term_prev.iterrows():
+            links.loc[link_id, 'term_node'] = new_node
 
     links.sort_values('init_node', inplace=True)
     links.reset_index(drop=True, inplace=True)
+
+    links.drop('prev_init_node', axis=1)
+    links.drop('prev_term_node', axis=1)
 
     return links
 
@@ -75,8 +88,10 @@ if __name__ == '__main__':
     trips_root = os.path.join(root, 'netname_trips.tntp'.replace('netname', net_name))
     trips = rn.read_trips(trips_root)
 
-    revised_nodes = revise_nodes(nodes, orig_nodes)
-    revised_links = revise_links(links, orig_nodes)
+    incDict = make_orig_incDict(nodes, orig_nodes)
+
+    revised_nodes = revise_nodes(nodes, incDict)
+    revised_links = revise_links(links, incDict)
     
 
     # print(revised_nodes)
