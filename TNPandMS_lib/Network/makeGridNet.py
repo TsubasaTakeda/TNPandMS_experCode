@@ -98,6 +98,10 @@ def make_grid_network(num_node, capa_scale, fft_scale = null):
 
     return grid_nodes, grid_links
 
+
+
+
+
 if __name__ == '__main__':
 
     import os
