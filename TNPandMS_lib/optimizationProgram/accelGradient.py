@@ -402,12 +402,12 @@ class FISTA_PROJ_BACK:
         now_lips = self.lips_init
 
         # 解の更新で使用する値
-        t = 1
+        t = 1.0
 
         # 初期解の設定
-        now_sol = self.x_init
+        now_sol = self.x_init.copy()
 
-        temp_sol = now_sol
+        temp_sol = now_sol.copy()
 
         # 計算時間格納用変数
         para_time = 0.0
@@ -448,11 +448,11 @@ class FISTA_PROJ_BACK:
             total_time += temp_total_time
 
             start_time = time.process_time()
+            temp_t = (1.0 + (1.0 + 4.0*t**2.0)**(1.0/2.0))/2.0
+            temp_sol = now_sol + ((t - 1.0)/temp_t) * (now_sol - prev_sol)
             if prev_nbl @ (now_sol - prev_sol) > 0:
                 t = 1.0
             num_call_nbl += 1
-            temp_t = (1.0 + (1.0 + 4.0*t**2.0)**(1.0/2.0))/2.0
-            temp_sol = now_sol + ((t - 1.0)/temp_t) * (now_sol - prev_sol)
             end_time = time.process_time()
             para_time += end_time - start_time
             total_time += end_time - start_time
