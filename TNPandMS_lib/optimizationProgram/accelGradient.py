@@ -448,8 +448,9 @@ class FISTA_PROJ_BACK:
             total_time += temp_total_time
 
             start_time = time.process_time()
-            temp_t = (1.0 + (1.0 + 4.0*t**2.0)**(1.0/2.0))/2.0
-            temp_sol = now_sol + ((t - 1.0)/temp_t) * (now_sol - prev_sol)
+            prev_t = t
+            t = (1.0 + (1.0 + 4.0*prev_t**2.0)**(1.0/2.0))/2.0
+            temp_sol = now_sol + ((prev_t - 1.0)/t) * (now_sol - prev_sol)
             if prev_nbl @ (now_sol - prev_sol) > 0:
                 t = 1.0
             num_call_nbl += 1
@@ -458,10 +459,10 @@ class FISTA_PROJ_BACK:
             total_time += end_time - start_time
 
 
-            [temp_sol, temp_para_time, temp_total_time] = self.proj_func(temp_sol)
-            para_time += temp_para_time
-            total_time += temp_total_time
-            t = temp_t
+            # [temp_sol, temp_para_time, temp_total_time] = self.proj_func(temp_sol)
+            # para_time += temp_para_time
+            # total_time += temp_total_time
+            
             # 収束判定の準備
             [conv, temp_para_time, temp_total_time] = self.conv_func(now_sol)
             para_time += temp_para_time
