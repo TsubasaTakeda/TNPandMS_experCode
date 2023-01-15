@@ -323,8 +323,8 @@ def LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root):
                 obj += user_info[user_num].user_costVec @ user_linkFlow
 
                 # エントロピー項を計算
-                user_link_logTerm = np.log(user_linkFlow, out=np.zeros_like(user_linkFlow), where=user_linkFlow != 0.0)
-                user_node_logTerm = np.log(user_nodeFlow, out=np.zeros_like(user_nodeFlow), where=user_nodeFlow != 0.0)
+                user_link_logTerm = np.log(user_linkFlow, out=np.zeros_like(user_linkFlow), where=user_linkFlow > 0.0)
+                user_node_logTerm = np.log(user_nodeFlow, out=np.zeros_like(user_nodeFlow), where=user_nodeFlow > 0.0)
                 obj += (user_linkFlow @ user_link_logTerm - user_nodeFlow @ user_node_logTerm) / user_info[user_num].theta
 
                 # print(user_linkFlow @ user_link_logTerm - user_nodeFlow @ user_node_logTerm)
