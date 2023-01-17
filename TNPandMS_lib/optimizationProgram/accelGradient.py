@@ -443,17 +443,22 @@ class FISTA_PROJ_BACK:
             para_time += temp_para_time
             total_time += temp_total_time
             num_call_proj += 1
-            [prev_nbl, temp_para_time, temp_total_time] = self.nbl_func(prev_sol)
+            # [prev_nbl, temp_para_time, temp_total_time] = self.nbl_func(prev_sol)
+            # para_time += temp_para_time
+            # total_time += temp_total_time
+
+            prev_obj = now_obj
+            [now_obj, temp_para_time, temp_total_time] = self.obj_func(now_sol)
             para_time += temp_para_time
             total_time += temp_total_time
+            num_call_obj += 1
 
             start_time = time.process_time()
             prev_t = t
             t = (1.0 + (1.0 + 4.0*prev_t**2.0)**(1.0/2.0))/2.0
             temp_sol = now_sol + ((prev_t - 1.0)/t) * (now_sol - prev_sol)
-            if prev_nbl @ (now_sol - prev_sol) > 0:
+            if now_obj - prev_obj > 0:
                 t = 1.0
-            num_call_nbl += 1
             end_time = time.process_time()
             para_time += end_time - start_time
             total_time += end_time - start_time
@@ -471,7 +476,6 @@ class FISTA_PROJ_BACK:
 
             if iteration % self.output_iter == 0:
                 
-                [now_obj, dammy_para_time, dammy_total_time]  = self.obj_func(now_sol)
 
                 if len(now_sol) > 5:
                     print('iteration:', iteration, ' now_sol:', now_sol[:5], ' now_obj:', now_obj, ' convergence:', conv)

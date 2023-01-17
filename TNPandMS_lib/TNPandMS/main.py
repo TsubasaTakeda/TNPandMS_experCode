@@ -47,10 +47,10 @@ class TEMP_INFO:
 
 dir_name = '_sampleData'
 # networks = ['GridNet_4', 'GridNet_9', 'GridNet_16', 'GridNet_25', 'GridNet_36']
-networks = ['SiouxFalls_2', 'SiouxFalls_6', 'SiouxFalls_13', 'SiouxFalls_24']
+networks = ['SiouxFalls_13']
 scenarios = ['Scenario_0']
 # algorithms = ['TNPandMS_FISTA', 'TNPandMS_FW', 'TNPandMS_MSA', 'TNPandMS_PL']
-algorithms = ['TNPandMS_FW']
+algorithms = ['TNPandMS_FISTA']
 
 
 for net_name in networks:
