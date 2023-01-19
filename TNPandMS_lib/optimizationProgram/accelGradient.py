@@ -403,6 +403,7 @@ class FISTA_PROJ_BACK:
 
         # 解の更新で使用する値
         t = 1.0
+        j = 0
 
         # 初期解の設定
         now_sol = self.x_init.copy()
@@ -456,9 +457,11 @@ class FISTA_PROJ_BACK:
             start_time = time.process_time()
             prev_t = t
             t = (1.0 + (1.0 + 4.0*prev_t**2.0)**(1.0/2.0))/2.0
+            j += 1
             temp_sol = now_sol + ((prev_t - 1.0)/t) * (now_sol - prev_sol)
-            if now_obj - prev_obj > 0:
+            if now_obj - prev_obj > 0 and j > 5:
                 t = 1.0
+                j = 0
             end_time = time.process_time()
             para_time += end_time - start_time
             total_time += end_time - start_time
