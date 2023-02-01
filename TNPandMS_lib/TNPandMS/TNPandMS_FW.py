@@ -396,7 +396,7 @@ def LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root):
     frankw.set_B_eq(B_eq)
     frankw.set_b_eq(b_eq)
     frankw.set_lb(0.0)
-    frankw.set_conv_judge(0.001)
+    frankw.set_conv_judge(0.000000001)
     frankw.set_output_iter(1)
     frankw.set_output_root(output_root)
     frankw.exect_FW()

@@ -13,6 +13,7 @@ import TNPandMS_FISTA as fista
 import TNPandMS_MSA as msa
 import TNPandMS_PL as pl
 import TNPandMS_FW as fw
+import TNPandMS_FW_MSA as fwm
 
 
 class VEH_INFO:
@@ -47,10 +48,10 @@ class TEMP_INFO:
 
 dir_name = '_sampleData'
 # networks = ['GridNet_4', 'GridNet_9', 'GridNet_16', 'GridNet_25', 'GridNet_36']
-networks = ['SiouxFalls_13']
+networks = ['SiouxFalls_2']
 scenarios = ['Scenario_0']
-# algorithms = ['TNPandMS_FISTA', 'TNPandMS_FW', 'TNPandMS_MSA', 'TNPandMS_PL']
-algorithms = ['TNPandMS_FISTA']
+# algorithms = ['TNPandMS_FISTA', 'TNPandMS_FW', 'TNPandMS_FW_MSA', 'TNPandMS_MSA', 'TNPandMS_PL']
+algorithms = ['TNPandMS_FW']
 
 
 for net_name in networks:
@@ -188,3 +189,11 @@ for net_name in networks:
                 output_root = os.path.join(root, '..', dir_name, net_name, scene, 'result', 'FW_LOGIT')
                 os.makedirs(output_root, exist_ok=True)
                 fw.LOGIT_TNPandMS_FW(veh_info, user_info, TNP_capa, output_root)
+
+            if algo == 'TNPandMS_FW_MSA':
+
+                print('Start TNPandMS_FW_MSA')
+
+                output_root = os.path.join(root, '..', dir_name, net_name, scene, 'result', 'FW_MSA_LOGIT')
+                os.makedirs(output_root, exist_ok=True)
+                fwm.LOGIT_TNPandMS_FW_MSA(veh_info, user_info, TNP_capa, output_root)

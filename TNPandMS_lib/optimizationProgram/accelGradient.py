@@ -542,7 +542,7 @@ class FISTA_PROJ_BACK:
         while 1:
 
             [temp_sol, temp_para_time, temp_total_time] = self.proj_func(now_sol - now_nbl/(self.back_para**iota * now_lips))
-            temp_sol = now_sol - now_nbl/(self.back_para**iota * now_lips)
+            # temp_sol = now_sol - now_nbl/(self.back_para**iota * now_lips)
             num_call_proj += 1
             end_time = time.process_time()
             para_time += end_time - start_time

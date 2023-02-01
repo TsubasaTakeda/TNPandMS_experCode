@@ -249,7 +249,7 @@ def LOGIT_TNPandMS_FISTA(veh_info, user_info, TNP_capa, output_root):
     fista.set_conv_func(conv_func)
     fista.set_lips_init(total_flow / num_MSconst * max_cost)
     fista.set_back_para(1.1)
-    fista.set_conv_judge(1.0)
+    fista.set_conv_judge(0.01)
     fista.set_output_iter(1)
     fista.set_output_root(output_root)
     fista.exect_FISTA_proj_back()
