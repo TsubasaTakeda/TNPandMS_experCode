@@ -77,6 +77,48 @@ def make_ts_net_links(original_links, original_nodes, num_times, capacity_scale)
 
     return TS_links
 
+def make_ts_net_user_links(original_links, original_nodes, num_times):
+    for time in range(num_times - 1):
+
+        index_list_1 = original_links.index + [(len(original_links) + len(original_nodes))*time for i in range(len(original_links))]
+        index_list_2 = original_nodes.index + [(len(original_links) + len(original_nodes))*time + len(original_links) - 1 for i in range(len(original_nodes))]
+        index_list = list(index_list_1) + list(index_list_2)
+        # print(index_list)
+        init_node_1 = original_links['init_node'] + [len(original_nodes)*time for i in range(len(original_links))]
+        init_node_2 = original_nodes.index + [len(original_nodes)*time for i in range(len(original_nodes))]
+        init_node = list(init_node_1) + list(init_node_2)
+        # print(init_node)
+        term_node_1 = original_links['term_node'] + [len(original_nodes)*(time + 1) for i in range(len(original_links))]
+        term_node_2 = original_nodes.index + [len(original_nodes)*(time + 1) for i in range(len(original_nodes))]
+        term_node = list(term_node_1) + list(term_node_2)
+        # print(term_node)
+        # capacity = original_links['capacity'] * capacity_scale
+        # capacity = list(capacity)
+        # print(capacity)
+        free_flow_time = list(original_links['free_flow_time']) + [0.0 for i in range(len(original_nodes))]
+        # print(free_flow_time)
+        o_link = list(original_links.index) + [-1 for i in range(len(original_nodes))]
+        time_list = [time for i in range(len(original_links) + len(original_nodes))]
+
+        add_df = pd.DataFrame(
+            {
+                'init_node': init_node,
+                'term_node': term_node,
+                # 'capacity': capacity,
+                'free_flow_time': free_flow_time,
+                'original_link': o_link,
+                'time': time_list
+            }, index=index_list
+        )
+
+        # print(add_df)
+
+        if time == 0:
+            TS_links = add_df
+        else:
+            TS_links = TS_links.append(add_df)
+
+    return TS_links
 
 # 特殊な時空間ネットワーク(同親ノードを繋ぐリンクのみが存在する)のリンクを作成する関数
 def make_ts_net_links_off(original_nodes, num_times):
@@ -124,6 +166,16 @@ def make_TS_net(original_links, original_nodes, num_times, capacity_scale):
 
     return TS_links, TS_nodes
 
+# 利用者用の時空間ネットワークを作成するプログラム (通常の時空間ネットワークに，同親のノード同士を繋ぐネットワーク)
+def make_TS_net_user(original_links, original_nodes, num_times):
+
+    # ノード作成
+    TS_nodes = make_ts_net_nodes(original_nodes, num_times)
+
+    # リンク作成
+    TS_links = make_ts_net_user_links(original_links, original_nodes, num_times)
+
+    return TS_links, TS_nodes
 
 # 特殊な時空間ネットワーク(リンクが同親のノード同士を繋ぐネットワーク)を作成するプログラム
 def make_TS_net_off(original_nodes, num_times):
@@ -501,7 +553,7 @@ def make_user_net(original_links, original_nodes, num_zones, num_times, user_inf
 
 
     # -------------------------------------------各状態のノードを作成-------------------------------------------------------
-    [ts_net_links, ts_net_nodes] = make_TS_net(original_links, original_nodes, num_times, 1.0)
+    [ts_net_links, ts_net_nodes] = make_TS_net_user(original_links, original_nodes, num_times)
     # print(ts_net_links)
     # print(ts_net_nodes)
 
@@ -829,22 +881,26 @@ if __name__ == "__main__":
 
     import os
 
-    root = os.path.dirname(os.path.abspath('.'))
-    root = os.path.join(root, '..', '_sampleData', 'Sample')
+    dir_name = '_sampleData'
+    net_name = 'SiouxFalls_24'
+    scene_name = 'Scenario_1'
 
-    root1 = os.path.join(root, 'Sample_net.tntp')
+    root = os.path.dirname(os.path.abspath('.'))
+    root = os.path.join(root, '..', dir_name, net_name)
+
+    root1 = os.path.join(root, 'netname_net.tntp'.replace('netname', net_name))
     links = rn.read_net(root1)
     num_zones = rn.read_num_zones(root1)
     num_nodes = rn.read_num_nodes(root1)
     # print(links)
     # print('\n\n')
 
-    root2 = os.path.join(root, 'Sample_node.tntp')
+    root2 = os.path.join(root, 'netname_node.tntp'.replace('netname', net_name))
     nodes = rn.read_node(root2)
     # print(nodes)
     # print('\n\n')
 
-    root3 = os.path.join(root, 'Sample1_vu.tntp')
+    root3 = os.path.join(root, scene_name, 'netname_vu.tntp'.replace('netname', net_name))
     [vehicle_info, user_info] = rn.read_vu(root3)
     num_time = rn.read_num_times(root3)
     capa_scale = rn.read_capa_scale(root3)
@@ -854,7 +910,7 @@ if __name__ == "__main__":
     # print(type(num_time))
     # print('\n\n')
 
-    root4 = os.path.join(root, 'Sample_scost.tntp')
+    root4 = os.path.join(root, scene_name, 'netname_scost.tntp'.replace('netname', net_name))
     [vehicle_scost, user_scost] = rn.read_scost(root4)
     # print(vehicle_scost)
     # print(user_scost)
@@ -875,18 +931,19 @@ if __name__ == "__main__":
     for vehicle in vehicle_info.keys():
         temp_root = os.path.join(root5_vehicle, str(vehicle))
         makedirs(temp_root, exist_ok=True)
-        [VTS_links, VTS_nodes] = make_vehicle_net(links, nodes, num_zones, num_time, vehicle_info[vehicle], vehicle_scost[vehicle], 20.0)
+        [VTS_links, VTS_nodes] = make_vehicle_net(links, nodes, num_zones, num_time, vehicle_info[vehicle], vehicle_scost[vehicle], 100.0)
         # print(VTS_links)
         # print(VTS_links[VTS_links['price_index'] == 1])
         # print(VTS_links[VTS_links['time'] == 3])
-        rn.write_net(os.path.join(temp_root, 'Sample_vir_net.tntp'), VTS_links, num_zones*2, len(VTS_nodes), 1, len(VTS_links))
-        rn.write_node(os.path.join(temp_root, 'Sample_vir_node.tntp'), VTS_nodes)
+        rn.write_net(os.path.join(temp_root, 'netname_vir_net.tntp'.replace('netname', net_name)), VTS_links, num_zones*2, len(VTS_nodes), 1, len(VTS_links))
+        rn.write_node(os.path.join(temp_root, 'netname_vir_node.tntp'.replace('netname', net_name)), VTS_nodes)
 
     for user in user_info.keys():
         temp_root = os.path.join(root5_user, str(user))
         makedirs(temp_root, exist_ok=True)
-        [UTS_links, UTS_nodes] = make_user_net(links, nodes, num_zones, num_time, user_info[user], user_scost[user], 20.0)
+        # print(user_scost)
+        [UTS_links, UTS_nodes] = make_user_net(links, nodes, num_zones, num_time, user_info[user], user_scost[user], 100.0)
         # print(UTS_links[UTS_links['price_index'] == 1])
         # print(UTS_nodes)
-        rn.write_net(os.path.join(temp_root, 'Sample_vir_net.tntp'), UTS_links, num_zones*2, len(UTS_nodes), 1, len(UTS_links))
-        rn.write_node(os.path.join(temp_root, 'Sample_vir_node.tntp'), UTS_nodes)
+        rn.write_net(os.path.join(temp_root, 'netname_vir_net.tntp'.replace('netname', net_name)), UTS_links, num_zones*2, len(UTS_nodes), 1, len(UTS_links))
+        rn.write_node(os.path.join(temp_root, 'netname_vir_node.tntp'.replace('netname', net_name)), UTS_nodes)

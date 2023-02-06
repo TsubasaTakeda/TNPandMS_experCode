@@ -85,8 +85,7 @@ def make_MSU_constMat(user_links, user_nodes, num_price_index, num_ts_links, num
         # ---------時空間ネットワークの係数行列------------------------------------------------------------------
         num_coeffi = 1.0
         start_row_num = (price_index-1) * (num_ts_links + num_in_links*2)
-
-        link_set = user_links[(user_links['price_index'] == price_index) & (user_links['link_type'] == 1)]
+        link_set = user_links[(user_links['original_link'] != -1) & (user_links['price_index'] == price_index) & (user_links['link_type'] == 1)]
         for vir_link_index, link in link_set.iterrows():
             const_mat[start_row_num + link['original_TS_link'], vir_link_index] = num_coeffi
 
@@ -94,7 +93,7 @@ def make_MSU_constMat(user_links, user_nodes, num_price_index, num_ts_links, num
         num_coeffi = 1.0
         start_row_num = (price_index-1) * (num_ts_links + num_in_links*2) + num_ts_links
 
-        link_set = user_links[(user_links['price_index'] == price_index) & (user_links['link_type'] == 2)]
+        link_set = user_links[(user_links['original_link'] != -1) & (user_links['price_index'] == price_index) & (user_links['link_type'] == 2)]
         for vir_link_index, link in link_set.iterrows():
             original_ts_node = user_nodes['original_TS_node'][link['init_node']]
             const_mat[start_row_num + original_ts_node - 1, vir_link_index] = num_coeffi
@@ -103,7 +102,7 @@ def make_MSU_constMat(user_links, user_nodes, num_price_index, num_ts_links, num
         num_coeffi = 1.0
         start_row_num = (price_index-1) * (num_ts_links + num_in_links*2) + (num_ts_links + num_in_links)
 
-        link_set = user_links[(user_links['price_index'] == price_index) & (user_links['link_type'] == 3)]
+        link_set = user_links[(user_links['original_link'] != -1) & (user_links['price_index'] == price_index) & (user_links['link_type'] == 3)]
         for vir_link_index, link in link_set.iterrows():
             original_ts_node = user_nodes['original_TS_node'][link['init_node']]
             const_mat[start_row_num + original_ts_node - 1, vir_link_index] = num_coeffi
