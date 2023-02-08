@@ -882,8 +882,8 @@ if __name__ == "__main__":
     import os
 
     dir_name = '_sampleData'
-    net_name = 'SiouxFalls_24'
-    scene_name = 'Scenario_1'
+    net_name = 'SiouxFalls_13'
+    scene_name = 'Scenario_3'
 
     root = os.path.dirname(os.path.abspath('.'))
     root = os.path.join(root, '..', dir_name, net_name)

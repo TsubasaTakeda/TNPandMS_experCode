@@ -165,8 +165,8 @@ if __name__ == '__main__':
     #     return ax
 
     dir_name = '_sampleData'
-    net_name = 'SiouxFalls_24'
-    scene_name = 'scenario_1'
+    net_name = 'SiouxFalls_13'
+    scene_name = 'scenario_3'
 
 
     root = os.path.dirname(os.path.abspath('.'))
@@ -221,7 +221,7 @@ if __name__ == '__main__':
     # print(MSU_constMat)
 
 
-    root_write = os.path.join(root, '..', dir_name, net_name, 'constMat', 'vehicle', '0')
+    root_write = os.path.join(root, '..', dir_name, net_name, scene_name, 'constMat', 'vehicle', '0')
     makedirs(root_write, exist_ok=True)
     temp_root = os.path.join(root_write, 'incidenceMat')
     rsm.write_sparse_mat(temp_root, V_incMat_0)
@@ -231,14 +231,14 @@ if __name__ == '__main__':
     rsm.write_sparse_mat(temp_root, MSV_constMat_0)
 
     
-    root_write = os.path.join(root, '..', dir_name, net_name, 'constMat', 'user', '0')
+    root_write = os.path.join(root, '..', dir_name, net_name, scene_name, 'constMat', 'user', '0')
     makedirs(root_write, exist_ok=True)
     temp_root = os.path.join(root_write, 'incidenceMat')
     rsm.write_sparse_mat(temp_root, U_incMat_0)
     temp_root = os.path.join(root_write, 'MSU_constMat')
     rsm.write_sparse_mat(temp_root, MSU_constMat_0)
 
-    root_write = os.path.join(root, '..', dir_name, net_name, 'constMat', 'user', '1')
+    root_write = os.path.join(root, '..', dir_name, net_name, scene_name, 'constMat', 'user', '1')
     makedirs(root_write, exist_ok=True)
     temp_root = os.path.join(root_write, 'incidenceMat')
     rsm.write_sparse_mat(temp_root, U_incMat_1)
