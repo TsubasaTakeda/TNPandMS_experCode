@@ -922,7 +922,24 @@ if __name__ == "__main__":
     # print(ts_links)
     # print(ts_nodes)
 
-    root5 = os.path.join(root, 'virtual_net')
+    # 時空間ネットワークを作成
+    capacity_scale = rn.read_capa_scale(os.path.join(root, scene_name, 'netname_vu.tntp'.replace('netname', net_name)))
+    ftn = rn.read_ftn(os.path.join(root, 'netname_net.tntp'.replace('netname', net_name)))
+    [TS_links, TS_nodes] = make_TS_net(links, nodes, num_time, capacity_scale)
+    num_ts_links = len(TS_links)
+    num_in_links = len(TS_nodes[TS_nodes['time'] != num_time-1])
+    
+    # 時空間ネットワークを保存
+    temp_root = os.path.join(root, scene_name, 'TS_net')
+    os.makedirs(temp_root, exist_ok=True)
+    rn.write_net(os.path.join(temp_root, 'netname_ts_net.tntp'.replace('netname', net_name)), TS_links, num_zones*2, len(TS_nodes), ftn, len(TS_links))
+    rn.write_node(os.path.join(temp_root, 'netname_ts_node.tntp'.replace('netname', net_name)), TS_nodes)
+
+    # 時空間ネットワークに関するメモリを解放
+    del TS_links, TS_nodes
+
+
+    root5 = os.path.join(root, scene_name, 'virtual_net')
     root5_vehicle = os.path.join(root5, 'vehicle')
     root5_user = os.path.join(root5, 'user')
     makedirs(root5_vehicle, exist_ok=True)
